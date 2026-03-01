@@ -1,0 +1,35 @@
+=== Story Script Lexical Analyzer (C++) ===
+KEYWORD: story
+IDENTIFIER: StudentResult
+KEYWORD: begins
+KEYWORD: character
+IDENTIFIER: marks
+KEYWORD: holds
+NUMBER: 85
+KEYWORD: character
+IDENTIFIER: passMark
+KEYWORD: holds
+NUMBER: 40
+KEYWORD: narrate
+IDENTIFIER: marks
+KEYWORD: when
+IDENTIFIER: marks
+OPERATOR: >
+IDENTIFIER: passMark
+KEYWORD: narrate
+IDENTIFIER: marks
+KEYWORD: otherwise
+KEYWORD: narrate
+IDENTIFIER: passMark
+KEYWORD: during
+IDENTIFIER: marks
+OPERATOR: >
+NUMBER: 0
+IDENTIFIER: marks
+KEYWORD: holds
+IDENTIFIER: marks
+OPERATOR: -
+NUMBER: 10
+KEYWORD: narrate
+IDENTIFIER: marks
+KEYWORD: end story
