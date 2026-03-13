@@ -1,18 +1,18 @@
-story StudentResult
-begins
+story Demo begins
 
-character marks holds 85
-character passMark holds 40
+character x holds 10;
+character y holds 20;
 
-narrate marks
+x holds x + y;
 
-when marks > passMark
-narrate marks
+when x > 10
+    narrate x;
 otherwise
-narrate passMark
+    narrate y;
+end choice
 
-during marks > 0
-marks holds marks - 10
-narrate marks
+during x < 50
+    x holds x + 5;
+end cycle
 
 end story

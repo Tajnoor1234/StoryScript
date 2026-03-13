@@ -3,10 +3,11 @@
 #include <cstdio>
 #include <vector>
 #include <string>
+#include "storyscript.tab.h"
+
 using namespace std;
 
 extern FILE *yyin;
-
 
 enum TokenType {
     T_KEYWORD,
@@ -17,15 +18,12 @@ enum TokenType {
     T_INVALID
 };
 
-
 struct Token {
     TokenType type;
     string lexeme;
 };
 
-
 vector<Token> tokenTable;
-
 
 void addToken(TokenType t, const string& lex) {
     tokenTable.push_back({t, lex});
@@ -39,77 +37,65 @@ ID      {LETTER}({LETTER}|{DIGIT})*
 NUMBER  {DIGIT}+
 
 %%
-"story"         { addToken(T_KEYWORD, "KEYWORD: story"); }
-"begins"        { addToken(T_KEYWORD, "KEYWORD: begins"); }
-"end story"     { addToken(T_KEYWORD, "KEYWORD: end story"); }
 
-"character"     { addToken(T_KEYWORD, "KEYWORD: character"); }
-"holds"         { addToken(T_KEYWORD, "KEYWORD: holds"); }
+"story"         { addToken(T_KEYWORD,"KEYWORD: story"); return STORY; }
+"begins"        { addToken(T_KEYWORD,"KEYWORD: begins"); return BEGINS; }
+"end story"     { addToken(T_KEYWORD,"KEYWORD: end story"); return ENDSTORY; }
 
-"when"          { addToken(T_KEYWORD, "KEYWORD: when"); }
-"otherwise"     { addToken(T_KEYWORD, "KEYWORD: otherwise"); }
-"end choice"    { addToken(T_KEYWORD, "KEYWORD: end choice"); }
+"character"     { addToken(T_KEYWORD,"KEYWORD: character"); return CHARACTER; }
+"holds"         { addToken(T_KEYWORD,"KEYWORD: holds"); return HOLDS; }
 
-"during"        { addToken(T_KEYWORD, "KEYWORD: during"); }
-"journey"       { addToken(T_KEYWORD, "KEYWORD: journey"); }
-"end cycle"     { addToken(T_KEYWORD, "KEYWORD: end cycle"); }
+"when"          { addToken(T_KEYWORD,"KEYWORD: when"); return WHEN; }
+"otherwise"     { addToken(T_KEYWORD,"KEYWORD: otherwise"); return OTHERWISE; }
+"end choice"    { addToken(T_KEYWORD,"KEYWORD: end choice"); return ENDCHOICE; }
 
-"chapter"       { addToken(T_KEYWORD, "KEYWORD: chapter"); }
-"return"        { addToken(T_KEYWORD, "KEYWORD: return"); }
+"during"        { addToken(T_KEYWORD,"KEYWORD: during"); return DURING; }
+"journey"       { addToken(T_KEYWORD,"KEYWORD: journey"); return JOURNEY; }
+"end cycle"     { addToken(T_KEYWORD,"KEYWORD: end cycle"); return ENDCYCLE; }
 
-"narrate"       { addToken(T_KEYWORD, "KEYWORD: narrate"); }
-"listen"        { addToken(T_KEYWORD, "KEYWORD: listen"); }
+"chapter"       { addToken(T_KEYWORD,"KEYWORD: chapter"); return CHAPTER; }
+"takes"         { addToken(T_KEYWORD,"KEYWORD: takes"); return TAKES; }
+"return"        { addToken(T_KEYWORD,"KEYWORD: return"); return RETURN; }
+"end chapter"   { addToken(T_KEYWORD,"KEYWORD: end chapter"); return ENDCHAPTER; }
 
-"and"           { addToken(T_OPERATOR, "LOGICAL OPERATOR: and"); }
-"or"            { addToken(T_OPERATOR, "LOGICAL OPERATOR: or"); }
-"not"           { addToken(T_OPERATOR, "LOGICAL OPERATOR: not"); }
+"narrate"       { addToken(T_KEYWORD,"KEYWORD: narrate"); return NARRATE; }
+"listen"        { addToken(T_KEYWORD,"KEYWORD: listen"); return LISTEN; }
 
-"=="            { addToken(T_OPERATOR, "OPERATOR: =="); }
-"!="            { addToken(T_OPERATOR, "OPERATOR: !="); }
-">="            { addToken(T_OPERATOR, "OPERATOR: >="); }
-"<="            { addToken(T_OPERATOR, "OPERATOR: <="); }
-">"             { addToken(T_OPERATOR, "OPERATOR: >"); }
-"<"             { addToken(T_OPERATOR, "OPERATOR: <"); }
-"="             { addToken(T_OPERATOR, "OPERATOR: ="); }
+"and"           { addToken(T_OPERATOR,"LOGICAL OPERATOR: and"); return AND; }
+"or"            { addToken(T_OPERATOR,"LOGICAL OPERATOR: or"); return OR; }
+"not"           { addToken(T_OPERATOR,"LOGICAL OPERATOR: not"); return NOT; }
 
-"+"             { addToken(T_OPERATOR, "OPERATOR: +"); }
-"-"             { addToken(T_OPERATOR, "OPERATOR: -"); }
-"*"             { addToken(T_OPERATOR, "OPERATOR: *"); }
-"/"             { addToken(T_OPERATOR, "OPERATOR: /"); }
-"%"             { addToken(T_OPERATOR, "OPERATOR: %"); }
+"=="            { addToken(T_OPERATOR,"OPERATOR: =="); return EQ; }
+"!="            { addToken(T_OPERATOR,"OPERATOR: !="); return NE; }
+">="            { addToken(T_OPERATOR,"OPERATOR: >="); return GE; }
+"<="            { addToken(T_OPERATOR,"OPERATOR: <="); return LE; }
+">"             { addToken(T_OPERATOR,"OPERATOR: >"); return GT; }
+"<"             { addToken(T_OPERATOR,"OPERATOR: <"); return LT; }
 
+"="             { addToken(T_OPERATOR,"OPERATOR: ="); return ASSIGN; }
 
-"{"             { addToken(T_SYMBOL, "SYMBOL: {"); }
-"}"             { addToken(T_SYMBOL, "SYMBOL: }"); }
-"("             { addToken(T_SYMBOL, "SYMBOL: ("); }
-")"             { addToken(T_SYMBOL, "SYMBOL: )"); }
-";"             { addToken(T_SYMBOL, "SYMBOL: ;"); }
+"+"             { addToken(T_OPERATOR,"OPERATOR: +"); return PLUS; }
+"-"             { addToken(T_OPERATOR,"OPERATOR: -"); return MINUS; }
+"*"             { addToken(T_OPERATOR,"OPERATOR: *"); return MUL; }
+"/"             { addToken(T_OPERATOR,"OPERATOR: /"); return DIV; }
+"%"             { addToken(T_OPERATOR,"OPERATOR: %"); return MOD; }
 
-{NUMBER}        { addToken(T_NUMBER, string("NUMBER: ") + yytext); }
-{ID}            { addToken(T_IDENTIFIER, string("IDENTIFIER: ") + yytext); }
+"{"             { addToken(T_SYMBOL,"SYMBOL: {"); return LBRACE; }
+"}"             { addToken(T_SYMBOL,"SYMBOL: }"); return RBRACE; }
+"("             { addToken(T_SYMBOL,"SYMBOL: ("); return LPAREN; }
+")"             { addToken(T_SYMBOL,"SYMBOL: )"); return RPAREN; }
+";"             { addToken(T_SYMBOL,"SYMBOL: ;"); return SEMICOLON; }
+
+{NUMBER}        { addToken(T_NUMBER,string("NUMBER: ") + yytext); yylval = atoi(yytext); return NUMBER; }
+
+{ID}            { addToken(T_IDENTIFIER,string("IDENTIFIER: ") + yytext); return IDENTIFIER; }
 
 [ \t\n]+        ;
 
-.               { addToken(T_INVALID, string("INVALID TOKEN: ") + yytext); }
+.               { addToken(T_INVALID,string("INVALID TOKEN: ") + yytext); }
+
 %%
 
 int yywrap() {
     return 1;
-}
-
-int main() {
-    cout << "=== Story Script Lexical Analyzer (C++) ===\n";
-
-    yyin = fopen("input.story", "r");
-    if (!yyin) {
-        cerr << "Error: cannot open input.story file\n";
-        return 1;
-    }
-
-    yylex();
-    fclose(yyin);
-
-
-
-    return 0;
 }
