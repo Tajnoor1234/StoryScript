@@ -44,6 +44,12 @@
 #if YYDEBUG
 extern int yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 41 "storyscript.y"
+
+    struct Node;
+
+#line 53 "storyscript.tab.h"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -100,7 +106,18 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+union YYSTYPE
+{
+#line 46 "storyscript.y"
+
+    int num;
+    char* id;
+    Node* node;
+
+#line 118 "storyscript.tab.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

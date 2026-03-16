@@ -527,6 +527,7 @@ char *yytext;
 #line 2 "storyscript.l"
 #include <iostream>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 #include <string>
 #include "storyscript.tab.h"
@@ -555,8 +556,8 @@ void addToken(TokenType t, const string& lex) {
     tokenTable.push_back({t, lex});
     cout << lex << endl;
 }
-#line 559 "lex.yy.c"
 #line 560 "lex.yy.c"
+#line 561 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -773,10 +774,10 @@ YY_DECL
 		}
 
 	{
-#line 39 "storyscript.l"
+#line 40 "storyscript.l"
 
 
-#line 780 "lex.yy.c"
+#line 781 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -835,216 +836,224 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 41 "storyscript.l"
+#line 42 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: story"); return STORY; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 42 "storyscript.l"
+#line 43 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: begins"); return BEGINS; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 43 "storyscript.l"
+#line 44 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: end story"); return ENDSTORY; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 45 "storyscript.l"
+#line 46 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: character"); return CHARACTER; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 46 "storyscript.l"
+#line 47 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: holds"); return HOLDS; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 48 "storyscript.l"
+#line 49 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: when"); return WHEN; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 49 "storyscript.l"
+#line 50 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: otherwise"); return OTHERWISE; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 50 "storyscript.l"
+#line 51 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: end choice"); return ENDCHOICE; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 52 "storyscript.l"
+#line 53 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: during"); return DURING; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 53 "storyscript.l"
+#line 54 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: journey"); return JOURNEY; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 54 "storyscript.l"
+#line 55 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: end cycle"); return ENDCYCLE; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 56 "storyscript.l"
+#line 57 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: chapter"); return CHAPTER; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 57 "storyscript.l"
+#line 58 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: takes"); return TAKES; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 58 "storyscript.l"
+#line 59 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: return"); return RETURN; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 59 "storyscript.l"
+#line 60 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: end chapter"); return ENDCHAPTER; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 61 "storyscript.l"
+#line 62 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: narrate"); return NARRATE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 62 "storyscript.l"
+#line 63 "storyscript.l"
 { addToken(T_KEYWORD,"KEYWORD: listen"); return LISTEN; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 64 "storyscript.l"
+#line 65 "storyscript.l"
 { addToken(T_OPERATOR,"LOGICAL OPERATOR: and"); return AND; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 65 "storyscript.l"
+#line 66 "storyscript.l"
 { addToken(T_OPERATOR,"LOGICAL OPERATOR: or"); return OR; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 66 "storyscript.l"
+#line 67 "storyscript.l"
 { addToken(T_OPERATOR,"LOGICAL OPERATOR: not"); return NOT; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 68 "storyscript.l"
+#line 69 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: =="); return EQ; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 69 "storyscript.l"
+#line 70 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: !="); return NE; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 70 "storyscript.l"
+#line 71 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: >="); return GE; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 71 "storyscript.l"
+#line 72 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: <="); return LE; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 72 "storyscript.l"
+#line 73 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: >"); return GT; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 73 "storyscript.l"
+#line 74 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: <"); return LT; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 75 "storyscript.l"
+#line 76 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: ="); return ASSIGN; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 77 "storyscript.l"
+#line 78 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: +"); return PLUS; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 78 "storyscript.l"
+#line 79 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: -"); return MINUS; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 79 "storyscript.l"
+#line 80 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: *"); return MUL; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 80 "storyscript.l"
+#line 81 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: /"); return DIV; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 81 "storyscript.l"
+#line 82 "storyscript.l"
 { addToken(T_OPERATOR,"OPERATOR: %"); return MOD; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 83 "storyscript.l"
+#line 84 "storyscript.l"
 { addToken(T_SYMBOL,"SYMBOL: {"); return LBRACE; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 84 "storyscript.l"
+#line 85 "storyscript.l"
 { addToken(T_SYMBOL,"SYMBOL: }"); return RBRACE; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 85 "storyscript.l"
+#line 86 "storyscript.l"
 { addToken(T_SYMBOL,"SYMBOL: ("); return LPAREN; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 86 "storyscript.l"
+#line 87 "storyscript.l"
 { addToken(T_SYMBOL,"SYMBOL: )"); return RPAREN; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 87 "storyscript.l"
+#line 88 "storyscript.l"
 { addToken(T_SYMBOL,"SYMBOL: ;"); return SEMICOLON; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 89 "storyscript.l"
-{ addToken(T_NUMBER,string("NUMBER: ") + yytext); yylval = atoi(yytext); return NUMBER; }
+#line 90 "storyscript.l"
+{
+    addToken(T_NUMBER,string("NUMBER: ") + yytext);
+    yylval.num = atoi(yytext);
+    return NUMBER;
+}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 91 "storyscript.l"
-{ addToken(T_IDENTIFIER,string("IDENTIFIER: ") + yytext); return IDENTIFIER; }
+#line 96 "storyscript.l"
+{
+    addToken(T_IDENTIFIER,string("IDENTIFIER: ") + yytext);
+    yylval.id = strdup(yytext);
+    return IDENTIFIER;
+}
 	YY_BREAK
 case 40:
 /* rule 40 can match eol */
 YY_RULE_SETUP
-#line 93 "storyscript.l"
+#line 102 "storyscript.l"
 ;
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 95 "storyscript.l"
+#line 104 "storyscript.l"
 { addToken(T_INVALID,string("INVALID TOKEN: ") + yytext); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 97 "storyscript.l"
+#line 106 "storyscript.l"
 ECHO;
 	YY_BREAK
-#line 1048 "lex.yy.c"
+#line 1057 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2049,7 +2058,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 97 "storyscript.l"
+#line 106 "storyscript.l"
 
 
 int yywrap() {

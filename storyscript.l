@@ -1,6 +1,7 @@
 %{
 #include <iostream>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 #include <string>
 #include "storyscript.tab.h"
@@ -86,9 +87,17 @@ NUMBER  {DIGIT}+
 ")"             { addToken(T_SYMBOL,"SYMBOL: )"); return RPAREN; }
 ";"             { addToken(T_SYMBOL,"SYMBOL: ;"); return SEMICOLON; }
 
-{NUMBER}        { addToken(T_NUMBER,string("NUMBER: ") + yytext); yylval = atoi(yytext); return NUMBER; }
+{NUMBER} {
+    addToken(T_NUMBER,string("NUMBER: ") + yytext);
+    yylval.num = atoi(yytext);
+    return NUMBER;
+}
 
-{ID}            { addToken(T_IDENTIFIER,string("IDENTIFIER: ") + yytext); return IDENTIFIER; }
+{ID} {
+    addToken(T_IDENTIFIER,string("IDENTIFIER: ") + yytext);
+    yylval.id = strdup(yytext);
+    return IDENTIFIER;
+}
 
 [ \t\n]+        ;
 

@@ -71,12 +71,42 @@
 
 #include <iostream>
 #include <string>
+#include <map>
+#include <vector>
+#include <unistd.h>
+
 using namespace std;
 
 extern int yylex();
+extern FILE *yyin;
 void yyerror(const char *s);
 
-#line 80 "storyscript.tab.c"
+map<string,int> symbolTable;
+
+/* AST Node definition */
+struct Node{
+    string type;
+    string id;
+    int value;
+
+    Node *left;
+    Node *right;
+
+    vector<Node*> children;
+
+    Node(string t){
+        type=t;
+        value=0;
+        left=right=nullptr;
+    }
+};
+
+Node* root=nullptr;
+
+int eval(Node* n);
+void exec(Node* n);
+
+#line 110 "storyscript.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -153,14 +183,12 @@ enum yysymbol_kind_t
   YYSYMBOL_statement = 46,                 /* statement  */
   YYSYMBOL_declaration = 47,               /* declaration  */
   YYSYMBOL_assignment = 48,                /* assignment  */
-  YYSYMBOL_conditional = 49,               /* conditional  */
-  YYSYMBOL_loop = 50,                      /* loop  */
-  YYSYMBOL_function = 51,                  /* function  */
-  YYSYMBOL_parameter_list = 52,            /* parameter_list  */
-  YYSYMBOL_input = 53,                     /* input  */
-  YYSYMBOL_output = 54,                    /* output  */
-  YYSYMBOL_condition = 55,                 /* condition  */
-  YYSYMBOL_expression = 56                 /* expression  */
+  YYSYMBOL_output = 49,                    /* output  */
+  YYSYMBOL_input = 50,                     /* input  */
+  YYSYMBOL_conditional = 51,               /* conditional  */
+  YYSYMBOL_loop = 52,                      /* loop  */
+  YYSYMBOL_condition = 53,                 /* condition  */
+  YYSYMBOL_expression = 54                 /* expression  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -488,16 +516,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  4
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   92
+#define YYLAST   87
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  43
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  14
+#define YYNNTS  12
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  34
+#define YYNRULES  28
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  78
+#define YYNSTATES  65
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   297
@@ -550,10 +578,9 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    38,    38,    45,    46,    50,    51,    52,    53,    54,
-      55,    56,    60,    67,    74,    81,    88,    95,    96,    97,
-     101,   108,   115,   116,   117,   118,   119,   120,   124,   125,
-     126,   127,   128,   129,   130
+       0,    79,    79,    86,    94,   100,   101,   102,   103,   104,
+     105,   109,   119,   129,   138,   147,   158,   168,   175,   182,
+     189,   196,   202,   209,   216,   223,   230,   237,   243
 };
 #endif
 
@@ -576,9 +603,8 @@ static const char *const yytname[] =
   "MINUS", "MUL", "DIV", "MOD", "GT", "LT", "GE", "LE", "EQ", "NE", "AND",
   "OR", "NOT", "ASSIGN", "LBRACE", "RBRACE", "LPAREN", "RPAREN",
   "SEMICOLON", "COMMA", "$accept", "program", "statement_list",
-  "statement", "declaration", "assignment", "conditional", "loop",
-  "function", "parameter_list", "input", "output", "condition",
-  "expression", YY_NULLPTR
+  "statement", "declaration", "assignment", "output", "input",
+  "conditional", "loop", "condition", "expression", YY_NULLPTR
 };
 
 static const char *
@@ -588,7 +614,7 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-20)
+#define YYPACT_NINF (-21)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -602,14 +628,13 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -1,    -9,    20,     9,   -20,    50,     3,   -12,   -12,     5,
-     -12,    26,    45,    48,    50,   -20,   -20,   -20,   -20,   -20,
-     -20,   -20,    52,   -20,   -20,    50,    49,    50,    40,   -19,
-      16,   -12,   -20,   -20,   -12,    53,   -12,   -12,   -12,   -12,
-     -12,   -12,   -12,   -12,   -12,   -12,   -12,    54,    43,   -20,
-     -20,    19,    25,    50,    13,    13,   -20,   -20,   -20,    60,
-      60,    60,    60,    60,    60,   -20,    46,    50,   -20,   -20,
-      77,    43,    73,   -20,   -20,   -12,    -7,   -20
+       3,    -9,    15,    16,   -21,    56,     7,    26,    26,    -2,
+      10,    17,    34,    56,   -21,   -21,   -21,   -21,   -21,   -21,
+      46,   -21,   -21,    26,    26,    37,    55,    37,   -20,    13,
+      -2,   -21,   -21,    -2,     4,   -17,    26,    26,    35,    -2,
+      -2,    -2,    -2,    -2,    -2,    45,   -21,   -21,   -15,    27,
+     -21,     4,     4,    56,    62,    62,    62,    62,    62,    62,
+     -21,   -21,   -21,    49,   -21
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -618,27 +643,26 @@ static const yytype_int8 yypact[] =
 static const yytype_int8 yydefact[] =
 {
        0,     0,     0,     0,     1,     4,     0,     0,     0,     0,
-       0,     0,     0,     0,     4,     5,     6,     7,     8,     9,
-      10,    11,     0,    33,    34,     4,     0,     4,     0,     0,
-       0,     0,     2,     3,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,    19,    21,
-      20,     0,     0,     4,    28,    29,    30,    31,    32,    22,
-      23,    24,    25,    26,    27,    15,    17,     4,    13,    12,
-       0,    19,     0,    14,    18,     0,     0,    16
+       0,     0,     0,     4,     5,     6,     9,    10,     7,     8,
+       0,    28,    27,     0,     0,     4,     0,     4,     0,     0,
+       0,     2,     3,     0,    21,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,    13,    14,     0,     0,
+      22,    19,    20,     4,    23,    24,    25,    26,    17,    18,
+      16,    12,    11,     0,    15
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -20,   -20,   -13,   -20,   -20,   -20,   -20,   -20,   -20,    21,
-     -20,   -20,    82,   -10
+     -21,   -21,   -13,   -21,   -21,   -21,   -21,   -21,   -21,   -21,
+       5,    -8
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     2,    13,    14,    15,    16,    17,    18,    19,    67,
-      20,    21,    25,    26
+       0,     2,    12,    13,    14,    15,    16,    17,    18,    19,
+      25,    26
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -646,62 +670,57 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      29,    33,     1,    36,    37,    38,    39,    40,    23,    24,
-      77,     3,    35,     5,    47,    36,    37,    38,    39,    40,
-       4,    51,    49,    22,    52,    28,    54,    55,    56,    57,
-      58,    59,    60,    61,    62,    63,    64,    38,    39,    40,
-      70,    36,    37,    38,    39,    40,    30,    36,    37,    38,
-      39,    40,    31,    32,    72,    48,     6,    50,     7,    34,
-      68,     8,    53,    66,     9,    76,    69,    65,    10,    11,
-      12,    36,    37,    38,    39,    40,    41,    42,    43,    44,
-      45,    46,    36,    37,    38,    39,    40,    73,    71,    75,
-      27,     0,    74
+      32,    28,    39,    40,    41,    42,     1,    39,    40,    41,
+      42,     3,    38,    27,    45,     4,    36,    37,    21,    22,
+       5,    46,    48,    50,    30,    49,    61,    20,    34,    35,
+      29,    54,    55,    56,    57,    58,    59,    36,    37,    31,
+      63,    51,    52,     6,    53,     7,    21,    22,     8,    39,
+      40,    41,    42,    33,    47,     9,    10,    11,    60,    64,
+       0,    23,     6,     0,     7,    24,     0,     8,    62,     0,
+      36,    37,     0,     0,     9,    10,    11,    39,    40,    41,
+      42,     0,    43,    44,    39,    40,    41,    42
 };
 
 static const yytype_int8 yycheck[] =
 {
-      10,    14,     3,    22,    23,    24,    25,    26,    20,    21,
-      17,    20,    25,     4,    27,    22,    23,    24,    25,    26,
-       0,    31,    41,    20,    34,    20,    36,    37,    38,    39,
-      40,    41,    42,    43,    44,    45,    46,    24,    25,    26,
-      53,    22,    23,    24,    25,    26,    20,    22,    23,    24,
-      25,    26,     7,     5,    67,    15,     6,    41,     8,     7,
-      41,    11,     9,    20,    14,    75,    41,    13,    18,    19,
-      20,    22,    23,    24,    25,    26,    27,    28,    29,    30,
-      31,    32,    22,    23,    24,    25,    26,    10,    42,    16,
-       8,    -1,    71
+      13,     9,    22,    23,    24,    25,     3,    22,    23,    24,
+      25,    20,    25,     8,    27,     0,    33,    34,    20,    21,
+       4,    41,    30,    40,     7,    33,    41,    20,    23,    24,
+      20,    39,    40,    41,    42,    43,    44,    33,    34,     5,
+      53,    36,    37,     6,     9,     8,    20,    21,    11,    22,
+      23,    24,    25,     7,    41,    18,    19,    20,    13,    10,
+      -1,    35,     6,    -1,     8,    39,    -1,    11,    41,    -1,
+      33,    34,    -1,    -1,    18,    19,    20,    22,    23,    24,
+      25,    -1,    27,    28,    22,    23,    24,    25
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     3,    44,    20,     0,     4,     6,     8,    11,    14,
-      18,    19,    20,    45,    46,    47,    48,    49,    50,    51,
-      53,    54,    20,    20,    21,    55,    56,    55,    20,    56,
-      20,     7,     5,    45,     7,    45,    22,    23,    24,    25,
-      26,    27,    28,    29,    30,    31,    32,    45,    15,    41,
-      41,    56,    56,     9,    56,    56,    56,    56,    56,    56,
-      56,    56,    56,    56,    56,    13,    20,    52,    41,    41,
-      45,    42,    45,    10,    52,    16,    56,    17
+       0,     3,    44,    20,     0,     4,     6,     8,    11,    18,
+      19,    20,    45,    46,    47,    48,    49,    50,    51,    52,
+      20,    20,    21,    35,    39,    53,    54,    53,    54,    20,
+       7,     5,    45,     7,    53,    53,    33,    34,    45,    22,
+      23,    24,    25,    27,    28,    45,    41,    41,    54,    54,
+      40,    53,    53,     9,    54,    54,    54,    54,    54,    54,
+      13,    41,    41,    45,    10
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
        0,    43,    44,    45,    45,    46,    46,    46,    46,    46,
-      46,    46,    47,    48,    49,    50,    51,    52,    52,    52,
-      53,    54,    55,    55,    55,    55,    55,    55,    56,    56,
-      56,    56,    56,    56,    56
+      46,    47,    48,    49,    50,    51,    52,    53,    53,    53,
+      53,    53,    53,    54,    54,    54,    54,    54,    54
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     5,     2,     0,     1,     1,     1,     1,     1,
-       1,     1,     5,     4,     6,     4,     8,     1,     3,     0,
-       3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     3,     3,     1,     1
+       1,     5,     4,     3,     3,     6,     4,     3,     3,     3,
+       3,     2,     3,     3,     3,     3,     3,     1,     1
 };
 
 
@@ -1165,71 +1184,225 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: STORY IDENTIFIER BEGINS statement_list ENDSTORY  */
-#line 39 "storyscript.y"
-      {
-        cout << "Program parsed successfully\n";
-      }
-#line 1173 "storyscript.tab.c"
+#line 80 "storyscript.y"
+{
+    root=(yyvsp[-1].node);
+}
+#line 1192 "storyscript.tab.c"
     break;
 
-  case 12: /* declaration: CHARACTER IDENTIFIER HOLDS expression SEMICOLON  */
-#line 61 "storyscript.y"
-      {
-        cout << "Declaration statement\n";
-      }
-#line 1181 "storyscript.tab.c"
+  case 3: /* statement_list: statement statement_list  */
+#line 87 "storyscript.y"
+{
+    Node* n=new Node("block");
+    n->children.push_back((yyvsp[-1].node));
+    if((yyvsp[0].node)) n->children.push_back((yyvsp[0].node));
+    (yyval.node)=n;
+}
+#line 1203 "storyscript.tab.c"
     break;
 
-  case 13: /* assignment: IDENTIFIER HOLDS expression SEMICOLON  */
-#line 68 "storyscript.y"
-      {
-        cout << "Assignment statement\n";
-      }
-#line 1189 "storyscript.tab.c"
+  case 4: /* statement_list: %empty  */
+#line 94 "storyscript.y"
+{
+    (yyval.node)=nullptr;
+}
+#line 1211 "storyscript.tab.c"
     break;
 
-  case 14: /* conditional: WHEN condition statement_list OTHERWISE statement_list ENDCHOICE  */
-#line 75 "storyscript.y"
-      {
-        cout << "Conditional statement\n";
-      }
-#line 1197 "storyscript.tab.c"
+  case 11: /* declaration: CHARACTER IDENTIFIER HOLDS expression SEMICOLON  */
+#line 110 "storyscript.y"
+{
+    Node* n=new Node("declare");
+    n->id=(yyvsp[-3].id);
+    n->left=(yyvsp[-1].node);
+    (yyval.node)=n;
+}
+#line 1222 "storyscript.tab.c"
     break;
 
-  case 15: /* loop: DURING condition statement_list ENDCYCLE  */
-#line 82 "storyscript.y"
-      {
-        cout << "Loop statement\n";
-      }
-#line 1205 "storyscript.tab.c"
-    break;
-
-  case 16: /* function: CHAPTER IDENTIFIER TAKES parameter_list statement_list RETURN expression ENDCHAPTER  */
-#line 89 "storyscript.y"
-      {
-        cout << "Function definition\n";
-      }
-#line 1213 "storyscript.tab.c"
-    break;
-
-  case 20: /* input: LISTEN IDENTIFIER SEMICOLON  */
-#line 102 "storyscript.y"
-      {
-        cout << "Input statement\n";
-      }
-#line 1221 "storyscript.tab.c"
-    break;
-
-  case 21: /* output: NARRATE expression SEMICOLON  */
-#line 109 "storyscript.y"
-      {
-        cout << "Output statement\n";
-      }
-#line 1229 "storyscript.tab.c"
-    break;
-
-
+  case 12: /* assignment: IDENTIFIER HOLDS expression SEMICOLON  */
+#line 120 "storyscript.y"
+{
+    Node* n=new Node("assign");
+    n->id=(yyvsp[-3].id);
+    n->left=(yyvsp[-1].node);
+    (yyval.node)=n;
+}
 #line 1233 "storyscript.tab.c"
+    break;
+
+  case 13: /* output: NARRATE expression SEMICOLON  */
+#line 130 "storyscript.y"
+{
+    Node* n=new Node("print");
+    n->left=(yyvsp[-1].node);
+    (yyval.node)=n;
+}
+#line 1243 "storyscript.tab.c"
+    break;
+
+  case 14: /* input: LISTEN IDENTIFIER SEMICOLON  */
+#line 139 "storyscript.y"
+{
+    Node* n=new Node("input");
+    n->id=(yyvsp[-1].id);
+    (yyval.node)=n;
+}
+#line 1253 "storyscript.tab.c"
+    break;
+
+  case 15: /* conditional: WHEN condition statement_list OTHERWISE statement_list ENDCHOICE  */
+#line 148 "storyscript.y"
+{
+    Node* n=new Node("if");
+    n->left=(yyvsp[-4].node);
+    n->children.push_back((yyvsp[-3].node));
+    n->children.push_back((yyvsp[-1].node));
+    (yyval.node)=n;
+}
+#line 1265 "storyscript.tab.c"
+    break;
+
+  case 16: /* loop: DURING condition statement_list ENDCYCLE  */
+#line 159 "storyscript.y"
+{
+    Node* n=new Node("loop");
+    n->left=(yyvsp[-2].node);
+    n->children.push_back((yyvsp[-1].node));
+    (yyval.node)=n;
+}
+#line 1276 "storyscript.tab.c"
+    break;
+
+  case 17: /* condition: expression GT expression  */
+#line 169 "storyscript.y"
+{
+    Node* n=new Node("gt");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1287 "storyscript.tab.c"
+    break;
+
+  case 18: /* condition: expression LT expression  */
+#line 176 "storyscript.y"
+{
+    Node* n=new Node("lt");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1298 "storyscript.tab.c"
+    break;
+
+  case 19: /* condition: condition AND condition  */
+#line 183 "storyscript.y"
+{
+    Node* n=new Node("and");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1309 "storyscript.tab.c"
+    break;
+
+  case 20: /* condition: condition OR condition  */
+#line 190 "storyscript.y"
+{
+    Node* n=new Node("or");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1320 "storyscript.tab.c"
+    break;
+
+  case 21: /* condition: NOT condition  */
+#line 197 "storyscript.y"
+{
+    Node* n=new Node("not");
+    n->left=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1330 "storyscript.tab.c"
+    break;
+
+  case 22: /* condition: LPAREN condition RPAREN  */
+#line 203 "storyscript.y"
+{
+    (yyval.node)=(yyvsp[-1].node);
+}
+#line 1338 "storyscript.tab.c"
+    break;
+
+  case 23: /* expression: expression PLUS expression  */
+#line 210 "storyscript.y"
+{
+    Node* n=new Node("add");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1349 "storyscript.tab.c"
+    break;
+
+  case 24: /* expression: expression MINUS expression  */
+#line 217 "storyscript.y"
+{
+    Node* n=new Node("sub");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1360 "storyscript.tab.c"
+    break;
+
+  case 25: /* expression: expression MUL expression  */
+#line 224 "storyscript.y"
+{
+    Node* n=new Node("mul");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1371 "storyscript.tab.c"
+    break;
+
+  case 26: /* expression: expression DIV expression  */
+#line 231 "storyscript.y"
+{
+    Node* n=new Node("div");
+    n->left=(yyvsp[-2].node);
+    n->right=(yyvsp[0].node);
+    (yyval.node)=n;
+}
+#line 1382 "storyscript.tab.c"
+    break;
+
+  case 27: /* expression: NUMBER  */
+#line 238 "storyscript.y"
+{
+    Node* n=new Node("num");
+    n->value=(yyvsp[0].num);
+    (yyval.node)=n;
+}
+#line 1392 "storyscript.tab.c"
+    break;
+
+  case 28: /* expression: IDENTIFIER  */
+#line 244 "storyscript.y"
+{
+    Node* n=new Node("var");
+    n->id=(yyvsp[0].id);
+    (yyval.node)=n;
+}
+#line 1402 "storyscript.tab.c"
+    break;
+
+
+#line 1406 "storyscript.tab.c"
 
       default: break;
     }
@@ -1422,17 +1595,114 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 133 "storyscript.y"
+#line 251 "storyscript.y"
 
+
+/* evaluate expressions */
+int eval(Node* n)
+{
+    if(n->type=="num")
+        return n->value;
+
+    if(n->type=="var")
+        return symbolTable[n->id];
+
+    if(n->type=="add")
+        return eval(n->left)+eval(n->right);
+
+    if(n->type=="sub")
+        return eval(n->left)-eval(n->right);
+
+    if(n->type=="mul")
+        return eval(n->left)*eval(n->right);
+
+    if(n->type=="div")
+        return eval(n->left)/eval(n->right);
+
+    if(n->type=="gt")
+        return eval(n->left)>eval(n->right);
+
+    if(n->type=="lt")
+        return eval(n->left)<eval(n->right);
+    if(n->type=="and")
+        return eval(n->left) && eval(n->right);
+
+    if(n->type=="or")
+        return eval(n->left) || eval(n->right);
+
+    if(n->type=="not")
+        return !eval(n->left);
+
+    return 0;
+}
+
+/* execute AST */
+void exec(Node* n)
+{
+    if(!n) return;
+
+    if(n->type=="block"){
+        for(auto c:n->children)
+            exec(c);
+    }
+
+    else if(n->type=="declare"){
+        symbolTable[n->id]=eval(n->left);
+        cout<<"Declared "<<n->id<<" = "<<symbolTable[n->id]<<endl;
+    }
+
+    else if(n->type=="input"){
+        int val = 0;   // initialize
+        cout << "Enter value for " << n->id << ": ";
+        if(!(cin >> val)) cin.clear();
+        symbolTable[n->id] = val;
+    }
+
+    else if(n->type=="assign"){
+        symbolTable[n->id]=eval(n->left);
+        cout<<n->id<<" updated to "<<symbolTable[n->id]<<endl;
+    }
+
+    else if(n->type=="print"){
+        cout<<eval(n->left)<<endl;
+    }
+
+    else if(n->type=="if"){
+        if(eval(n->left))
+            exec(n->children[0]);
+        else
+            exec(n->children[1]);
+    }
+
+    else if(n->type=="loop"){
+        while(eval(n->left)){
+            exec(n->children[0]);
+        }
+    }
+}
 
 void yyerror(const char *s)
 {
-    cout << "Syntax Error: " << s << endl;
+    cout<<"Syntax Error"<<endl;
 }
 
 int main()
 {
-    cout << "Parsing StoryScript Program...\n";
+    cout<<"Parsing StoryScript Program...\n";
+
+    /* if no input redirection, open input.story */
+    if(isatty(fileno(stdin))){
+        FILE *fp = fopen("input.story","r");
+        if(!fp){
+            cout<<"Cannot open input.story\n";
+            return 1;
+        }
+        yyin = fp;
+    }
+
     yyparse();
+
+    exec(root);
+
     return 0;
 }

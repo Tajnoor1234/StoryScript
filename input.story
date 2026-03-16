@@ -1,7 +1,7 @@
-story Demo begins
+story FullDemo begins
 
 character x holds 10;
-character y holds 20;
+character y holds 5;
 
 x holds x + y;
 
@@ -11,8 +11,9 @@ otherwise
     narrate y;
 end choice
 
-during x < 50
+during x < 30
     x holds x + 5;
+    narrate x;
 end cycle
 
 end story
