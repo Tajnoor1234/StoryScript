@@ -73,21 +73,28 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <sstream>
 #include <unistd.h>
 
 using namespace std;
 
 extern int yylex();
 extern FILE *yyin;
+extern int yylineno;
 void yyerror(const char *s);
+typedef void* YY_BUFFER_STATE;
+extern YY_BUFFER_STATE yy_scan_string(const char *);
 
 map<string,int> symbolTable;
+bool hasSyntaxError = false;
+bool hasSemanticError = false;
 
-/* AST Node definition */
+/* AST Node */
 struct Node{
     string type;
     string id;
     int value;
+    int line;
 
     Node *left;
     Node *right;
@@ -97,6 +104,7 @@ struct Node{
     Node(string t){
         type=t;
         value=0;
+        line=0; 
         left=right=nullptr;
     }
 };
@@ -106,7 +114,24 @@ Node* root=nullptr;
 int eval(Node* n);
 void exec(Node* n);
 
-#line 110 "storyscript.tab.c"
+int getLine()
+{
+    return yylineno - 1;
+}
+
+void printCompilerHeader()
+{
+    cout << "\n=====================================\n";
+    cout << "        StoryScript Compiler v1.0\n";
+    cout << "=====================================\n";
+}
+
+void printPhase(string phase)
+{
+    cout << "[COMPILER] " << phase << " completed.\n";
+}
+
+#line 135 "storyscript.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -161,16 +186,16 @@ enum yysymbol_kind_t
   YYSYMBOL_MUL = 24,                       /* MUL  */
   YYSYMBOL_DIV = 25,                       /* DIV  */
   YYSYMBOL_MOD = 26,                       /* MOD  */
-  YYSYMBOL_GT = 27,                        /* GT  */
-  YYSYMBOL_LT = 28,                        /* LT  */
-  YYSYMBOL_GE = 29,                        /* GE  */
-  YYSYMBOL_LE = 30,                        /* LE  */
-  YYSYMBOL_EQ = 31,                        /* EQ  */
-  YYSYMBOL_NE = 32,                        /* NE  */
-  YYSYMBOL_AND = 33,                       /* AND  */
-  YYSYMBOL_OR = 34,                        /* OR  */
-  YYSYMBOL_NOT = 35,                       /* NOT  */
-  YYSYMBOL_ASSIGN = 36,                    /* ASSIGN  */
+  YYSYMBOL_ASSIGN = 27,                    /* ASSIGN  */
+  YYSYMBOL_GT = 28,                        /* GT  */
+  YYSYMBOL_LT = 29,                        /* LT  */
+  YYSYMBOL_GE = 30,                        /* GE  */
+  YYSYMBOL_LE = 31,                        /* LE  */
+  YYSYMBOL_EQ = 32,                        /* EQ  */
+  YYSYMBOL_NE = 33,                        /* NE  */
+  YYSYMBOL_AND = 34,                       /* AND  */
+  YYSYMBOL_OR = 35,                        /* OR  */
+  YYSYMBOL_NOT = 36,                       /* NOT  */
   YYSYMBOL_LBRACE = 37,                    /* LBRACE  */
   YYSYMBOL_RBRACE = 38,                    /* RBRACE  */
   YYSYMBOL_LPAREN = 39,                    /* LPAREN  */
@@ -187,8 +212,10 @@ enum yysymbol_kind_t
   YYSYMBOL_input = 50,                     /* input  */
   YYSYMBOL_conditional = 51,               /* conditional  */
   YYSYMBOL_loop = 52,                      /* loop  */
-  YYSYMBOL_condition = 53,                 /* condition  */
-  YYSYMBOL_expression = 54                 /* expression  */
+  YYSYMBOL_function = 53,                  /* function  */
+  YYSYMBOL_parameter_list = 54,            /* parameter_list  */
+  YYSYMBOL_condition = 55,                 /* condition  */
+  YYSYMBOL_expression = 56                 /* expression  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -455,13 +482,15 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 
 #if (! defined yyoverflow \
      && (! defined __cplusplus \
-         || (defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
+         || (defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL \
+             && defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
 
 /* A type that is properly aligned for any stack member.  */
 union yyalloc
 {
   yy_state_t yyss_alloc;
   YYSTYPE yyvs_alloc;
+  YYLTYPE yyls_alloc;
 };
 
 /* The size of the maximum gap between one aligned stack and the next.  */
@@ -470,8 +499,9 @@ union yyalloc
 /* The size of an array large to enough to hold all stacks, each with
    N elements.  */
 # define YYSTACK_BYTES(N) \
-     ((N) * (YYSIZEOF (yy_state_t) + YYSIZEOF (YYSTYPE)) \
-      + YYSTACK_GAP_MAXIMUM)
+     ((N) * (YYSIZEOF (yy_state_t) + YYSIZEOF (YYSTYPE) \
+             + YYSIZEOF (YYLTYPE)) \
+      + 2 * YYSTACK_GAP_MAXIMUM)
 
 # define YYCOPY_NEEDED 1
 
@@ -516,16 +546,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  4
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   87
+#define YYLAST   163
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  43
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  12
+#define YYNNTS  14
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  28
+#define YYNRULES  36
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  65
+#define YYNSTATES  79
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   297
@@ -576,11 +606,12 @@ static const yytype_int8 yytranslate[] =
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_int16 yyrline[] =
 {
-       0,    79,    79,    86,    94,   100,   101,   102,   103,   104,
-     105,   109,   119,   129,   138,   147,   158,   168,   175,   182,
-     189,   196,   202,   209,   216,   223,   230,   237,   243
+       0,   111,   111,   118,   126,   132,   133,   134,   135,   136,
+     137,   138,   139,   147,   155,   163,   171,   179,   185,   193,
+     202,   213,   224,   236,   242,   254,   261,   268,   275,   282,
+     288,   297,   304,   311,   318,   325,   331
 };
 #endif
 
@@ -600,11 +631,12 @@ static const char *const yytname[] =
   "ENDSTORY", "CHARACTER", "HOLDS", "WHEN", "OTHERWISE", "ENDCHOICE",
   "DURING", "JOURNEY", "ENDCYCLE", "CHAPTER", "TAKES", "RETURN",
   "ENDCHAPTER", "NARRATE", "LISTEN", "IDENTIFIER", "NUMBER", "PLUS",
-  "MINUS", "MUL", "DIV", "MOD", "GT", "LT", "GE", "LE", "EQ", "NE", "AND",
-  "OR", "NOT", "ASSIGN", "LBRACE", "RBRACE", "LPAREN", "RPAREN",
+  "MINUS", "MUL", "DIV", "MOD", "ASSIGN", "GT", "LT", "GE", "LE", "EQ",
+  "NE", "AND", "OR", "NOT", "LBRACE", "RBRACE", "LPAREN", "RPAREN",
   "SEMICOLON", "COMMA", "$accept", "program", "statement_list",
   "statement", "declaration", "assignment", "output", "input",
-  "conditional", "loop", "condition", "expression", YY_NULLPTR
+  "conditional", "loop", "function", "parameter_list", "condition",
+  "expression", YY_NULLPTR
 };
 
 static const char *
@@ -614,27 +646,28 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-21)
+#define YYPACT_NINF (-20)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-1)
+#define YYTABLE_NINF (-5)
 
 #define yytable_value_is_error(Yyn) \
   0
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-static const yytype_int8 yypact[] =
+static const yytype_int16 yypact[] =
 {
-       3,    -9,    15,    16,   -21,    56,     7,    26,    26,    -2,
-      10,    17,    34,    56,   -21,   -21,   -21,   -21,   -21,   -21,
-      46,   -21,   -21,    26,    26,    37,    55,    37,   -20,    13,
-      -2,   -21,   -21,    -2,     4,   -17,    26,    26,    35,    -2,
-      -2,    -2,    -2,    -2,    -2,    45,   -21,   -21,   -15,    27,
-     -21,     4,     4,    56,    62,    62,    62,    62,    62,    62,
-     -21,   -21,   -21,    49,   -21
+      -1,    -6,    16,    15,   -20,    89,   -16,     9,   108,   108,
+      22,    20,    24,    45,    46,    73,   -20,   -20,   -20,   -20,
+     -20,   -20,   -20,   -20,    52,   -20,   -20,   108,   108,    12,
+     130,    42,    34,   -19,    23,    20,   -20,   -20,    20,   -20,
+      64,   108,   108,    54,    20,    20,    20,    20,    20,    20,
+      57,    53,   -20,   -20,   -13,    44,   -20,   -20,    41,   104,
+     -17,   -17,   -20,   -20,   138,   138,   -20,    38,   119,   -20,
+     -20,    78,    53,    80,   -20,   -20,    20,   126,   -20
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -642,27 +675,28 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       0,     0,     0,     0,     1,     4,     0,     0,     0,     0,
-       0,     0,     0,     4,     5,     6,     9,    10,     7,     8,
-       0,    28,    27,     0,     0,     4,     0,     4,     0,     0,
-       0,     2,     3,     0,    21,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,    13,    14,     0,     0,
-      22,    19,    20,     4,    23,    24,    25,    26,    17,    18,
-      16,    12,    11,     0,    15
+       0,     0,     0,     0,     1,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     5,     6,    11,    10,
+       7,     8,     9,    12,     0,    36,    35,     0,     0,     0,
+       0,     0,     0,    18,     0,     0,     2,     3,     0,    29,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,    17,    19,    16,    14,    30,    27,    28,     0,
+      31,    32,    33,    34,    25,    26,    21,    23,     0,    15,
+      13,     0,     0,     0,    20,    24,     0,     0,    22
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -21,   -21,   -13,   -21,   -21,   -21,   -21,   -21,   -21,   -21,
-       5,    -8
+     -20,   -20,   -14,   -20,   -20,   -20,   -20,   -20,   -20,   -20,
+     -20,    29,    30,   -11
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     2,    12,    13,    14,    15,    16,    17,    18,    19,
-      25,    26
+       0,     2,    14,    15,    16,    17,    18,    19,    20,    21,
+      22,    68,    29,    30
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -670,57 +704,76 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      32,    28,    39,    40,    41,    42,     1,    39,    40,    41,
-      42,     3,    38,    27,    45,     4,    36,    37,    21,    22,
-       5,    46,    48,    50,    30,    49,    61,    20,    34,    35,
-      29,    54,    55,    56,    57,    58,    59,    36,    37,    31,
-      63,    51,    52,     6,    53,     7,    21,    22,     8,    39,
-      40,    41,    42,    33,    47,     9,    10,    11,    60,    64,
-       0,    23,     6,     0,     7,    24,     0,     8,    62,     0,
-      36,    37,     0,     0,     9,    10,    11,    39,    40,    41,
-      42,     0,    43,    44,    39,    40,    41,    42
+      33,    37,     1,    44,    45,    46,    47,    46,    47,    44,
+      45,    46,    47,     6,     3,    43,     4,    50,     7,     5,
+       8,    -4,    52,     9,    54,    23,    10,    55,    69,    24,
+      11,    12,    13,    60,    61,    62,    63,    64,    65,    31,
+      25,    26,    32,     6,    34,    71,    41,    42,     7,    51,
+       8,    36,    35,     9,    73,    -4,    10,    39,    40,    38,
+      11,    12,    13,    59,    53,    77,    44,    45,    46,    47,
+      66,    57,    58,    67,     6,    41,    41,    42,    -4,     7,
+      72,     8,    -4,    -4,     9,    70,    -4,    10,    74,    -4,
+       6,    11,    12,    13,    -4,     7,    76,     8,    41,    42,
+       9,    75,     0,    10,    56,     6,     0,    11,    12,    13,
+       7,     0,     8,     0,    -4,     9,     0,     0,    10,     0,
+       6,     0,    11,    12,    13,     7,     0,     8,    25,    26,
+       9,     0,     0,    10,     0,    -4,     0,    11,    12,    13,
+       0,     0,     0,    78,    27,     0,     0,    28,    44,    45,
+      46,    47,    44,    45,    46,    47,     0,     0,    48,    49,
+      44,    45,    46,    47
 };
 
 static const yytype_int8 yycheck[] =
 {
-      13,     9,    22,    23,    24,    25,     3,    22,    23,    24,
-      25,    20,    25,     8,    27,     0,    33,    34,    20,    21,
-       4,    41,    30,    40,     7,    33,    41,    20,    23,    24,
-      20,    39,    40,    41,    42,    43,    44,    33,    34,     5,
-      53,    36,    37,     6,     9,     8,    20,    21,    11,    22,
-      23,    24,    25,     7,    41,    18,    19,    20,    13,    10,
-      -1,    35,     6,    -1,     8,    39,    -1,    11,    41,    -1,
-      33,    34,    -1,    -1,    18,    19,    20,    22,    23,    24,
-      25,    -1,    27,    28,    22,    23,    24,    25
+      11,    15,     3,    22,    23,    24,    25,    24,    25,    22,
+      23,    24,    25,     1,    20,    29,     0,    31,     6,     4,
+       8,     9,    41,    11,    35,    41,    14,    38,    41,    20,
+      18,    19,    20,    44,    45,    46,    47,    48,    49,     9,
+      20,    21,    20,     1,    20,    59,    34,    35,     6,    15,
+       8,     5,     7,    11,    68,    13,    14,    27,    28,     7,
+      18,    19,    20,     9,    41,    76,    22,    23,    24,    25,
+      13,    41,    42,    20,     1,    34,    34,    35,     5,     6,
+      42,     8,     9,    10,    11,    41,    13,    14,    10,    16,
+       1,    18,    19,    20,     5,     6,    16,     8,    34,    35,
+      11,    72,    -1,    14,    40,     1,    -1,    18,    19,    20,
+       6,    -1,     8,    -1,    10,    11,    -1,    -1,    14,    -1,
+       1,    -1,    18,    19,    20,     6,    -1,     8,    20,    21,
+      11,    -1,    -1,    14,    -1,    16,    -1,    18,    19,    20,
+      -1,    -1,    -1,    17,    36,    -1,    -1,    39,    22,    23,
+      24,    25,    22,    23,    24,    25,    -1,    -1,    28,    29,
+      22,    23,    24,    25
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     3,    44,    20,     0,     4,     6,     8,    11,    18,
-      19,    20,    45,    46,    47,    48,    49,    50,    51,    52,
-      20,    20,    21,    35,    39,    53,    54,    53,    54,    20,
-       7,     5,    45,     7,    53,    53,    33,    34,    45,    22,
-      23,    24,    25,    27,    28,    45,    41,    41,    54,    54,
-      40,    53,    53,     9,    54,    54,    54,    54,    54,    54,
-      13,    41,    41,    45,    10
+       0,     3,    44,    20,     0,     4,     1,     6,     8,    11,
+      14,    18,    19,    20,    45,    46,    47,    48,    49,    50,
+      51,    52,    53,    41,    20,    20,    21,    36,    39,    55,
+      56,    55,    20,    56,    20,     7,     5,    45,     7,    55,
+      55,    34,    35,    45,    22,    23,    24,    25,    28,    29,
+      45,    15,    41,    41,    56,    56,    40,    55,    55,     9,
+      56,    56,    56,    56,    56,    56,    13,    20,    54,    41,
+      41,    45,    42,    45,    10,    54,    16,    56,    17
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
        0,    43,    44,    45,    45,    46,    46,    46,    46,    46,
-      46,    47,    48,    49,    50,    51,    52,    53,    53,    53,
-      53,    53,    53,    54,    54,    54,    54,    54,    54
+      46,    46,    46,    47,    47,    48,    48,    49,    49,    50,
+      51,    52,    53,    54,    54,    55,    55,    55,    55,    55,
+      55,    56,    56,    56,    56,    56,    56
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     5,     2,     0,     1,     1,     1,     1,     1,
-       1,     5,     4,     3,     3,     6,     4,     3,     3,     3,
-       3,     2,     3,     3,     3,     3,     3,     1,     1
+       1,     1,     2,     5,     4,     4,     3,     3,     2,     3,
+       6,     4,     8,     1,     3,     3,     3,     3,     3,     2,
+       3,     3,     3,     3,     3,     1,     1
 };
 
 
@@ -758,6 +811,32 @@ enum { YYENOMEM = -2 };
    Use YYerror or YYUNDEF. */
 #define YYERRCODE YYUNDEF
 
+/* YYLLOC_DEFAULT -- Set CURRENT to span from RHS[1] to RHS[N].
+   If N is 0, then set CURRENT to the empty location which ends
+   the previous symbol: RHS[0] (always defined).  */
+
+#ifndef YYLLOC_DEFAULT
+# define YYLLOC_DEFAULT(Current, Rhs, N)                                \
+    do                                                                  \
+      if (N)                                                            \
+        {                                                               \
+          (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;        \
+          (Current).first_column = YYRHSLOC (Rhs, 1).first_column;      \
+          (Current).last_line    = YYRHSLOC (Rhs, N).last_line;         \
+          (Current).last_column  = YYRHSLOC (Rhs, N).last_column;       \
+        }                                                               \
+      else                                                              \
+        {                                                               \
+          (Current).first_line   = (Current).last_line   =              \
+            YYRHSLOC (Rhs, 0).last_line;                                \
+          (Current).first_column = (Current).last_column =              \
+            YYRHSLOC (Rhs, 0).last_column;                              \
+        }                                                               \
+    while (0)
+#endif
+
+#define YYRHSLOC(Rhs, K) ((Rhs)[K])
+
 
 /* Enable debugging if requested.  */
 #if YYDEBUG
@@ -774,6 +853,63 @@ do {                                            \
 } while (0)
 
 
+/* YYLOCATION_PRINT -- Print the location on the stream.
+   This macro was not mandated originally: define only if we know
+   we won't break user code: when these are the locations we know.  */
+
+# ifndef YYLOCATION_PRINT
+
+#  if defined YY_LOCATION_PRINT
+
+   /* Temporary convenience wrapper in case some people defined the
+      undocumented and private YY_LOCATION_PRINT macros.  */
+#   define YYLOCATION_PRINT(File, Loc)  YY_LOCATION_PRINT(File, *(Loc))
+
+#  elif defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
+
+/* Print *YYLOCP on YYO.  Private, do not rely on its existence. */
+
+YY_ATTRIBUTE_UNUSED
+static int
+yy_location_print_ (FILE *yyo, YYLTYPE const * const yylocp)
+{
+  int res = 0;
+  int end_col = 0 != yylocp->last_column ? yylocp->last_column - 1 : 0;
+  if (0 <= yylocp->first_line)
+    {
+      res += YYFPRINTF (yyo, "%d", yylocp->first_line);
+      if (0 <= yylocp->first_column)
+        res += YYFPRINTF (yyo, ".%d", yylocp->first_column);
+    }
+  if (0 <= yylocp->last_line)
+    {
+      if (yylocp->first_line < yylocp->last_line)
+        {
+          res += YYFPRINTF (yyo, "-%d", yylocp->last_line);
+          if (0 <= end_col)
+            res += YYFPRINTF (yyo, ".%d", end_col);
+        }
+      else if (0 <= end_col && yylocp->first_column < end_col)
+        res += YYFPRINTF (yyo, "-%d", end_col);
+    }
+  return res;
+}
+
+#   define YYLOCATION_PRINT  yy_location_print_
+
+    /* Temporary convenience wrapper in case some people defined the
+       undocumented and private YY_LOCATION_PRINT macros.  */
+#   define YY_LOCATION_PRINT(File, Loc)  YYLOCATION_PRINT(File, &(Loc))
+
+#  else
+
+#   define YYLOCATION_PRINT(File, Loc) ((void) 0)
+    /* Temporary convenience wrapper in case some people defined the
+       undocumented and private YY_LOCATION_PRINT macros.  */
+#   define YY_LOCATION_PRINT  YYLOCATION_PRINT
+
+#  endif
+# endif /* !defined YYLOCATION_PRINT */
 
 
 # define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                    \
@@ -782,7 +918,7 @@ do {                                                                      \
     {                                                                     \
       YYFPRINTF (stderr, "%s ", Title);                                   \
       yy_symbol_print (stderr,                                            \
-                  Kind, Value); \
+                  Kind, Value, Location); \
       YYFPRINTF (stderr, "\n");                                           \
     }                                                                     \
 } while (0)
@@ -794,10 +930,11 @@ do {                                                                      \
 
 static void
 yy_symbol_value_print (FILE *yyo,
-                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep)
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp)
 {
   FILE *yyoutput = yyo;
   YY_USE (yyoutput);
+  YY_USE (yylocationp);
   if (!yyvaluep)
     return;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
@@ -812,12 +949,14 @@ yy_symbol_value_print (FILE *yyo,
 
 static void
 yy_symbol_print (FILE *yyo,
-                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep)
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp)
 {
   YYFPRINTF (yyo, "%s %s (",
              yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
 
-  yy_symbol_value_print (yyo, yykind, yyvaluep);
+  YYLOCATION_PRINT (yyo, yylocationp);
+  YYFPRINTF (yyo, ": ");
+  yy_symbol_value_print (yyo, yykind, yyvaluep, yylocationp);
   YYFPRINTF (yyo, ")");
 }
 
@@ -850,7 +989,7 @@ do {                                                            \
 `------------------------------------------------*/
 
 static void
-yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
+yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp, YYLTYPE *yylsp,
                  int yyrule)
 {
   int yylno = yyrline[yyrule];
@@ -864,7 +1003,8 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
                        YY_ACCESSING_SYMBOL (+yyssp[yyi + 1 - yynrhs]),
-                       &yyvsp[(yyi + 1) - (yynrhs)]);
+                       &yyvsp[(yyi + 1) - (yynrhs)],
+                       &(yylsp[(yyi + 1) - (yynrhs)]));
       YYFPRINTF (stderr, "\n");
     }
 }
@@ -872,7 +1012,7 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
 # define YY_REDUCE_PRINT(Rule)          \
 do {                                    \
   if (yydebug)                          \
-    yy_reduce_print (yyssp, yyvsp, Rule); \
+    yy_reduce_print (yyssp, yyvsp, yylsp, Rule); \
 } while (0)
 
 /* Nonzero means print parse trace.  It is left uninitialized so that
@@ -913,9 +1053,10 @@ int yydebug;
 
 static void
 yydestruct (const char *yymsg,
-            yysymbol_kind_t yykind, YYSTYPE *yyvaluep)
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, YYLTYPE *yylocationp)
 {
   YY_USE (yyvaluep);
+  YY_USE (yylocationp);
   if (!yymsg)
     yymsg = "Deleting";
   YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
@@ -931,6 +1072,12 @@ int yychar;
 
 /* The semantic value of the lookahead symbol.  */
 YYSTYPE yylval;
+/* Location data for the lookahead symbol.  */
+YYLTYPE yylloc
+# if defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
+  = { 1, 1, 1, 1 }
+# endif
+;
 /* Number of syntax errors so far.  */
 int yynerrs;
 
@@ -964,6 +1111,11 @@ yyparse (void)
     YYSTYPE *yyvs = yyvsa;
     YYSTYPE *yyvsp = yyvs;
 
+    /* The location stack: array, bottom, top.  */
+    YYLTYPE yylsa[YYINITDEPTH];
+    YYLTYPE *yyls = yylsa;
+    YYLTYPE *yylsp = yyls;
+
   int yyn;
   /* The return value of yyparse.  */
   int yyresult;
@@ -972,10 +1124,14 @@ yyparse (void)
   /* The variables used to return semantic value and location from the
      action routines.  */
   YYSTYPE yyval;
+  YYLTYPE yyloc;
+
+  /* The locations where the error started and ended.  */
+  YYLTYPE yyerror_range[3];
 
 
 
-#define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
+#define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N), yylsp -= (N))
 
   /* The number of symbols on the RHS of the reduced rule.
      Keep to zero when no symbol should be popped.  */
@@ -985,6 +1141,7 @@ yyparse (void)
 
   yychar = YYEMPTY; /* Cause a token to be read.  */
 
+  yylsp[0] = yylloc;
   goto yysetstate;
 
 
@@ -1023,6 +1180,7 @@ yysetstate:
            memory.  */
         yy_state_t *yyss1 = yyss;
         YYSTYPE *yyvs1 = yyvs;
+        YYLTYPE *yyls1 = yyls;
 
         /* Each stack pointer address is followed by the size of the
            data in use in that stack, in bytes.  This used to be a
@@ -1031,9 +1189,11 @@ yysetstate:
         yyoverflow (YY_("memory exhausted"),
                     &yyss1, yysize * YYSIZEOF (*yyssp),
                     &yyvs1, yysize * YYSIZEOF (*yyvsp),
+                    &yyls1, yysize * YYSIZEOF (*yylsp),
                     &yystacksize);
         yyss = yyss1;
         yyvs = yyvs1;
+        yyls = yyls1;
       }
 # else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
@@ -1052,6 +1212,7 @@ yysetstate:
           YYNOMEM;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
+        YYSTACK_RELOCATE (yyls_alloc, yyls);
 #  undef YYSTACK_RELOCATE
         if (yyss1 != yyssa)
           YYSTACK_FREE (yyss1);
@@ -1060,6 +1221,7 @@ yysetstate:
 
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
+      yylsp = yyls + yysize - 1;
 
       YY_IGNORE_USELESS_CAST_BEGIN
       YYDPRINTF ((stderr, "Stack size increased to %ld\n",
@@ -1113,6 +1275,7 @@ yybackup:
          loop in error recovery. */
       yychar = YYUNDEF;
       yytoken = YYSYMBOL_YYerror;
+      yyerror_range[1] = yylloc;
       goto yyerrlab1;
     }
   else
@@ -1146,6 +1309,7 @@ yybackup:
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
   YY_IGNORE_MAYBE_UNINITIALIZED_END
+  *++yylsp = yylloc;
 
   /* Discard the shifted token.  */
   yychar = YYEMPTY;
@@ -1179,230 +1343,306 @@ yyreduce:
      GCC warning that YYVAL may be used uninitialized.  */
   yyval = yyvsp[1-yylen];
 
-
+  /* Default location. */
+  YYLLOC_DEFAULT (yyloc, (yylsp - yylen), yylen);
+  yyerror_range[1] = yyloc;
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
   case 2: /* program: STORY IDENTIFIER BEGINS statement_list ENDSTORY  */
-#line 80 "storyscript.y"
+#line 112 "storyscript.y"
 {
-    root=(yyvsp[-1].node);
+    root = (yyvsp[-1].node);
 }
-#line 1192 "storyscript.tab.c"
+#line 1358 "storyscript.tab.c"
     break;
 
   case 3: /* statement_list: statement statement_list  */
-#line 87 "storyscript.y"
+#line 119 "storyscript.y"
 {
-    Node* n=new Node("block");
+    Node* n = new Node("block");
     n->children.push_back((yyvsp[-1].node));
     if((yyvsp[0].node)) n->children.push_back((yyvsp[0].node));
-    (yyval.node)=n;
+    (yyval.node) = n;
 }
-#line 1203 "storyscript.tab.c"
+#line 1369 "storyscript.tab.c"
     break;
 
   case 4: /* statement_list: %empty  */
-#line 94 "storyscript.y"
+#line 126 "storyscript.y"
 {
-    (yyval.node)=nullptr;
+    (yyval.node) = nullptr;
 }
-#line 1211 "storyscript.tab.c"
+#line 1377 "storyscript.tab.c"
     break;
 
-  case 11: /* declaration: CHARACTER IDENTIFIER HOLDS expression SEMICOLON  */
-#line 110 "storyscript.y"
-{
-    Node* n=new Node("declare");
-    n->id=(yyvsp[-3].id);
-    n->left=(yyvsp[-1].node);
-    (yyval.node)=n;
-}
-#line 1222 "storyscript.tab.c"
-    break;
-
-  case 12: /* assignment: IDENTIFIER HOLDS expression SEMICOLON  */
-#line 120 "storyscript.y"
-{
-    Node* n=new Node("assign");
-    n->id=(yyvsp[-3].id);
-    n->left=(yyvsp[-1].node);
-    (yyval.node)=n;
-}
-#line 1233 "storyscript.tab.c"
-    break;
-
-  case 13: /* output: NARRATE expression SEMICOLON  */
-#line 130 "storyscript.y"
-{
-    Node* n=new Node("print");
-    n->left=(yyvsp[-1].node);
-    (yyval.node)=n;
-}
-#line 1243 "storyscript.tab.c"
-    break;
-
-  case 14: /* input: LISTEN IDENTIFIER SEMICOLON  */
+  case 12: /* statement: error SEMICOLON  */
 #line 139 "storyscript.y"
-{
-    Node* n=new Node("input");
-    n->id=(yyvsp[-1].id);
-    (yyval.node)=n;
-}
-#line 1253 "storyscript.tab.c"
+                    { 
+      hasSyntaxError = true; 
+      yyerrok; 
+      cout << "Recovered from syntax error\n"; 
+  }
+#line 1387 "storyscript.tab.c"
     break;
 
-  case 15: /* conditional: WHEN condition statement_list OTHERWISE statement_list ENDCHOICE  */
+  case 13: /* declaration: CHARACTER IDENTIFIER HOLDS expression SEMICOLON  */
 #line 148 "storyscript.y"
 {
-    Node* n=new Node("if");
-    n->left=(yyvsp[-4].node);
-    n->children.push_back((yyvsp[-3].node));
-    n->children.push_back((yyvsp[-1].node));
-    (yyval.node)=n;
+    Node* n = new Node("declare");
+    n->id = (yyvsp[-3].id);
+    n->left = (yyvsp[-1].node);
+    n->line = (yylsp[-3]).first_line;
+    (yyval.node) = n;
 }
-#line 1265 "storyscript.tab.c"
+#line 1399 "storyscript.tab.c"
     break;
 
-  case 16: /* loop: DURING condition statement_list ENDCYCLE  */
-#line 159 "storyscript.y"
+  case 14: /* declaration: CHARACTER IDENTIFIER HOLDS expression  */
+#line 156 "storyscript.y"
 {
-    Node* n=new Node("loop");
-    n->left=(yyvsp[-2].node);
-    n->children.push_back((yyvsp[-1].node));
-    (yyval.node)=n;
+    hasSyntaxError = true;
+    cout << "Line " << (yylsp[0]).first_line << ": Missing ';' after declaration\n";
 }
-#line 1276 "storyscript.tab.c"
+#line 1408 "storyscript.tab.c"
     break;
 
-  case 17: /* condition: expression GT expression  */
-#line 169 "storyscript.y"
+  case 15: /* assignment: IDENTIFIER HOLDS expression SEMICOLON  */
+#line 164 "storyscript.y"
 {
-    Node* n=new Node("gt");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("assign");
+    n->id = (yyvsp[-3].id);
+    n->left = (yyvsp[-1].node);
+    n->line = (yylsp[-3]).first_line;
+    (yyval.node) = n;
 }
-#line 1287 "storyscript.tab.c"
+#line 1420 "storyscript.tab.c"
     break;
 
-  case 18: /* condition: expression LT expression  */
-#line 176 "storyscript.y"
+  case 16: /* assignment: IDENTIFIER HOLDS expression  */
+#line 172 "storyscript.y"
 {
-    Node* n=new Node("lt");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    hasSyntaxError = true;
+    cout << "Line " << (yylsp[0]).first_line << ": Missing ';' after assignment\n";
 }
-#line 1298 "storyscript.tab.c"
+#line 1429 "storyscript.tab.c"
     break;
 
-  case 19: /* condition: condition AND condition  */
-#line 183 "storyscript.y"
+  case 17: /* output: NARRATE expression SEMICOLON  */
+#line 180 "storyscript.y"
 {
-    Node* n=new Node("and");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("print");
+    n->left = (yyvsp[-1].node);
+    (yyval.node) = n;
 }
-#line 1309 "storyscript.tab.c"
+#line 1439 "storyscript.tab.c"
     break;
 
-  case 20: /* condition: condition OR condition  */
-#line 190 "storyscript.y"
+  case 18: /* output: NARRATE expression  */
+#line 186 "storyscript.y"
 {
-    Node* n=new Node("or");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    hasSyntaxError = true;
+    cout << "Line " << (yylsp[0]).first_line << ": Missing ';' after narrate\n";
 }
-#line 1320 "storyscript.tab.c"
+#line 1448 "storyscript.tab.c"
     break;
 
-  case 21: /* condition: NOT condition  */
-#line 197 "storyscript.y"
+  case 19: /* input: LISTEN IDENTIFIER SEMICOLON  */
+#line 194 "storyscript.y"
 {
-    Node* n=new Node("not");
-    n->left=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("input");
+    n->id = (yyvsp[-1].id);
+    (yyval.node) = n;
 }
-#line 1330 "storyscript.tab.c"
+#line 1458 "storyscript.tab.c"
     break;
 
-  case 22: /* condition: LPAREN condition RPAREN  */
+  case 20: /* conditional: WHEN condition statement_list OTHERWISE statement_list ENDCHOICE  */
 #line 203 "storyscript.y"
 {
-    (yyval.node)=(yyvsp[-1].node);
+    Node* n = new Node("if");
+    n->left = (yyvsp[-4].node);
+    n->children.push_back((yyvsp[-3].node));
+    n->children.push_back((yyvsp[-1].node));
+    (yyval.node) = n;
 }
-#line 1338 "storyscript.tab.c"
+#line 1470 "storyscript.tab.c"
     break;
 
-  case 23: /* expression: expression PLUS expression  */
-#line 210 "storyscript.y"
+  case 21: /* loop: DURING condition statement_list ENDCYCLE  */
+#line 214 "storyscript.y"
 {
-    Node* n=new Node("add");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("loop");
+    n->left = (yyvsp[-2].node);
+    n->children.push_back((yyvsp[-1].node));
+    (yyval.node) = n;
 }
-#line 1349 "storyscript.tab.c"
+#line 1481 "storyscript.tab.c"
     break;
 
-  case 24: /* expression: expression MINUS expression  */
-#line 217 "storyscript.y"
+  case 22: /* function: CHAPTER IDENTIFIER TAKES parameter_list statement_list RETURN expression ENDCHAPTER  */
+#line 225 "storyscript.y"
 {
-    Node* n=new Node("sub");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("function");
+    n->id = (yyvsp[-6].id);
+    n->children.push_back((yyvsp[-4].node));  // parameters
+    n->children.push_back((yyvsp[-3].node));  // body
+    n->left = (yyvsp[-1].node);               // return expression
+    (yyval.node) = n;
 }
-#line 1360 "storyscript.tab.c"
+#line 1494 "storyscript.tab.c"
     break;
 
-  case 25: /* expression: expression MUL expression  */
-#line 224 "storyscript.y"
+  case 23: /* parameter_list: IDENTIFIER  */
+#line 237 "storyscript.y"
 {
-    Node* n=new Node("mul");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("param");
+    n->id = (yyvsp[0].id);
+    (yyval.node) = n;
 }
-#line 1371 "storyscript.tab.c"
+#line 1504 "storyscript.tab.c"
     break;
 
-  case 26: /* expression: expression DIV expression  */
-#line 231 "storyscript.y"
+  case 24: /* parameter_list: IDENTIFIER COMMA parameter_list  */
+#line 243 "storyscript.y"
 {
-    Node* n=new Node("div");
-    n->left=(yyvsp[-2].node);
-    n->right=(yyvsp[0].node);
-    (yyval.node)=n;
+    Node* n = new Node("param");
+    n->id = (yyvsp[-2].id);
+    if((yyvsp[0].node)) n->children.push_back((yyvsp[0].node));
+    (yyval.node) = n;
 }
-#line 1382 "storyscript.tab.c"
+#line 1515 "storyscript.tab.c"
     break;
 
-  case 27: /* expression: NUMBER  */
-#line 238 "storyscript.y"
+  case 25: /* condition: expression GT expression  */
+#line 255 "storyscript.y"
 {
-    Node* n=new Node("num");
-    n->value=(yyvsp[0].num);
-    (yyval.node)=n;
+    Node* n = new Node("gt");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
 }
-#line 1392 "storyscript.tab.c"
+#line 1526 "storyscript.tab.c"
     break;
 
-  case 28: /* expression: IDENTIFIER  */
-#line 244 "storyscript.y"
+  case 26: /* condition: expression LT expression  */
+#line 262 "storyscript.y"
 {
-    Node* n=new Node("var");
-    n->id=(yyvsp[0].id);
-    (yyval.node)=n;
+    Node* n = new Node("lt");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
 }
-#line 1402 "storyscript.tab.c"
+#line 1537 "storyscript.tab.c"
+    break;
+
+  case 27: /* condition: condition AND condition  */
+#line 269 "storyscript.y"
+{
+    Node* n = new Node("and");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1548 "storyscript.tab.c"
+    break;
+
+  case 28: /* condition: condition OR condition  */
+#line 276 "storyscript.y"
+{
+    Node* n = new Node("or");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1559 "storyscript.tab.c"
+    break;
+
+  case 29: /* condition: NOT condition  */
+#line 283 "storyscript.y"
+{
+    Node* n = new Node("not");
+    n->left = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1569 "storyscript.tab.c"
+    break;
+
+  case 30: /* condition: LPAREN condition RPAREN  */
+#line 289 "storyscript.y"
+{
+    (yyval.node) = (yyvsp[-1].node);
+}
+#line 1577 "storyscript.tab.c"
+    break;
+
+  case 31: /* expression: expression PLUS expression  */
+#line 298 "storyscript.y"
+{
+    Node* n = new Node("add");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1588 "storyscript.tab.c"
+    break;
+
+  case 32: /* expression: expression MINUS expression  */
+#line 305 "storyscript.y"
+{
+    Node* n = new Node("sub");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1599 "storyscript.tab.c"
+    break;
+
+  case 33: /* expression: expression MUL expression  */
+#line 312 "storyscript.y"
+{
+    Node* n = new Node("mul");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1610 "storyscript.tab.c"
+    break;
+
+  case 34: /* expression: expression DIV expression  */
+#line 319 "storyscript.y"
+{
+    Node* n = new Node("div");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1621 "storyscript.tab.c"
+    break;
+
+  case 35: /* expression: NUMBER  */
+#line 326 "storyscript.y"
+{
+    Node* n = new Node("num");
+    n->value = (yyvsp[0].num);
+    (yyval.node) = n;
+}
+#line 1631 "storyscript.tab.c"
+    break;
+
+  case 36: /* expression: IDENTIFIER  */
+#line 332 "storyscript.y"
+{
+    Node* n = new Node("var");
+    n->id = (yyvsp[0].id);
+    n->line = (yylsp[0]).first_line;
+    (yyval.node) = n;
+}
+#line 1642 "storyscript.tab.c"
     break;
 
 
-#line 1406 "storyscript.tab.c"
+#line 1646 "storyscript.tab.c"
 
       default: break;
     }
@@ -1423,6 +1663,7 @@ yyreduce:
   yylen = 0;
 
   *++yyvsp = yyval;
+  *++yylsp = yyloc;
 
   /* Now 'shift' the result of the reduction.  Determine what state
      that goes to, based on the state we popped back to and the rule
@@ -1452,6 +1693,7 @@ yyerrlab:
       yyerror (YY_("syntax error"));
     }
 
+  yyerror_range[1] = yylloc;
   if (yyerrstatus == 3)
     {
       /* If just tried and failed to reuse lookahead token after an
@@ -1466,7 +1708,7 @@ yyerrlab:
       else
         {
           yydestruct ("Error: discarding",
-                      yytoken, &yylval);
+                      yytoken, &yylval, &yylloc);
           yychar = YYEMPTY;
         }
     }
@@ -1520,9 +1762,9 @@ yyerrlab1:
       if (yyssp == yyss)
         YYABORT;
 
-
+      yyerror_range[1] = *yylsp;
       yydestruct ("Error: popping",
-                  YY_ACCESSING_SYMBOL (yystate), yyvsp);
+                  YY_ACCESSING_SYMBOL (yystate), yyvsp, yylsp);
       YYPOPSTACK (1);
       yystate = *yyssp;
       YY_STACK_PRINT (yyss, yyssp);
@@ -1532,6 +1774,9 @@ yyerrlab1:
   *++yyvsp = yylval;
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 
+  yyerror_range[2] = yylloc;
+  ++yylsp;
+  YYLLOC_DEFAULT (*yylsp, yyerror_range, 2);
 
   /* Shift the error token.  */
   YY_SYMBOL_PRINT ("Shifting", YY_ACCESSING_SYMBOL (yyn), yyvsp, yylsp);
@@ -1575,7 +1820,7 @@ yyreturnlab:
          user semantic actions for why this is necessary.  */
       yytoken = YYTRANSLATE (yychar);
       yydestruct ("Cleanup: discarding lookahead",
-                  yytoken, &yylval);
+                  yytoken, &yylval, &yylloc);
     }
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYABORT or YYACCEPT.  */
@@ -1584,7 +1829,7 @@ yyreturnlab:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp);
+                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp, yylsp);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -1595,48 +1840,42 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 251 "storyscript.y"
+#line 340 "storyscript.y"
 
 
-/* evaluate expressions */
+/* expression evaluation */
+
 int eval(Node* n)
 {
-    if(n->type=="num")
-        return n->value;
+    if(n->type=="num") return n->value;
 
     if(n->type=="var")
+    {
+        if(symbolTable.find(n->id) == symbolTable.end())
+        {
+            cout << "Semantic Error (Line " << n->line << "): Variable '" << n->id << "' not declared\n";
+            hasSemanticError = true;
+            return 0; // continue execution
+        }
         return symbolTable[n->id];
+    }
 
-    if(n->type=="add")
-        return eval(n->left)+eval(n->right);
+    if(n->type=="add") return eval(n->left)+eval(n->right);
+    if(n->type=="sub") return eval(n->left)-eval(n->right);
+    if(n->type=="mul") return eval(n->left)*eval(n->right);
+    if(n->type=="div") return eval(n->left)/eval(n->right);
 
-    if(n->type=="sub")
-        return eval(n->left)-eval(n->right);
-
-    if(n->type=="mul")
-        return eval(n->left)*eval(n->right);
-
-    if(n->type=="div")
-        return eval(n->left)/eval(n->right);
-
-    if(n->type=="gt")
-        return eval(n->left)>eval(n->right);
-
-    if(n->type=="lt")
-        return eval(n->left)<eval(n->right);
-    if(n->type=="and")
-        return eval(n->left) && eval(n->right);
-
-    if(n->type=="or")
-        return eval(n->left) || eval(n->right);
-
-    if(n->type=="not")
-        return !eval(n->left);
+    if(n->type=="gt") return eval(n->left)>eval(n->right);
+    if(n->type=="lt") return eval(n->left)<eval(n->right);
+    if(n->type=="and") return eval(n->left)&&eval(n->right);
+    if(n->type=="or") return eval(n->left)||eval(n->right);
+    if(n->type=="not") return !eval(n->left);
 
     return 0;
 }
 
 /* execute AST */
+
 void exec(Node* n)
 {
     if(!n) return;
@@ -1651,27 +1890,42 @@ void exec(Node* n)
         cout<<"Declared "<<n->id<<" = "<<symbolTable[n->id]<<endl;
     }
 
-    else if(n->type=="input"){
-        int val = 0;   // initialize
-        cout << "Enter value for " << n->id << ": ";
-        if(!(cin >> val)) cin.clear();
-        symbolTable[n->id] = val;
-    }
-
     else if(n->type=="assign"){
-        symbolTable[n->id]=eval(n->left);
-        cout<<n->id<<" updated to "<<symbolTable[n->id]<<endl;
+        int val = eval(n->left);
+
+        if(symbolTable.find(n->id) == symbolTable.end()){
+            cout << "Semantic Error (Line " << n->line << "): Variable '" << n->id << "' not declared\n";
+            hasSemanticError = true;
+        } else {
+        symbolTable[n->id] = val;
+        cout << n->id << " updated to " << symbolTable[n->id] << endl;
+       }
     }
 
     else if(n->type=="print"){
         cout<<eval(n->left)<<endl;
     }
 
+    else if(n->type=="input"){
+        int val = 0;
+
+        cout<<"Enter value for "<<n->id<<": ";
+
+        if(!(cin >> val)){
+             cout<<"Invalid input. Default value 0 used.\n";
+             cin.clear();
+        }
+
+        symbolTable[n->id]=val;
+   }
+
     else if(n->type=="if"){
-        if(eval(n->left))
-            exec(n->children[0]);
-        else
-            exec(n->children[1]);
+        if(eval(n->left)){
+             if(n->children.size()>0) exec(n->children[0]);
+        }
+        else{
+             if(n->children.size()>1) exec(n->children[1]);
+        }
     }
 
     else if(n->type=="loop"){
@@ -1679,30 +1933,149 @@ void exec(Node* n)
             exec(n->children[0]);
         }
     }
+
+    else if(n->type=="function"){
+        cout<<"Function "<<n->id<<" parsed"<<endl;
+    }
+}
+void printErrorBanner()
+{
+    cout << "\n=====================================\n";
+    cout << "           COMPILATION ERROR\n";
+    cout << "=====================================\n";
+}
+
+void printAST(Node* n, int depth = 0)
+{
+    if(!n) return;
+
+    for(int i=0;i<depth;i++)
+        cout << "  ";
+
+    cout << "|-- " << n->type;
+
+    if(n->id != "")
+        cout << " (" << n->id << ")";
+
+    if(n->type == "num")
+        cout << " = " << n->value;
+
+    cout << endl;
+
+    if(n->left)
+        printAST(n->left, depth+1);
+
+    if(n->right)
+        printAST(n->right, depth+1);
+
+    for(auto c : n->children)
+        printAST(c, depth+1);
+}
+
+void printSymbolTable()
+{
+    cout << "\n---------------------------------\n";
+    cout << "Symbol Table\n";
+    cout << "---------------------------------\n";
+
+    for(auto &p : symbolTable)
+    {
+        cout << p.first << " : " << p.second << endl;
+    }
+
+    cout << "---------------------------------\n";
 }
 
 void yyerror(const char *s)
 {
-    cout<<"Syntax Error"<<endl;
+    extern int yylineno;
+
+    hasSyntaxError = true;
+
+    printErrorBanner();
+
+    cout << "Line: " << getLine() << endl;
+
+    if(string(s) == "syntax error")
+        cout << "Error: Invalid syntax near this line\n";
+    else
+        cout << "Error: " << s << endl;
+
+    cout << "=====================================\n";
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    cout<<"Parsing StoryScript Program...\n";
+    printCompilerHeader();
 
-    /* if no input redirection, open input.story */
-    if(isatty(fileno(stdin))){
-        FILE *fp = fopen("input.story","r");
-        if(!fp){
-            cout<<"Cannot open input.story\n";
+    cout << "\n[COMPILER] Starting Lexical Analysis...\n";
+
+    /* Input handling */
+    if(argc > 1)
+    {
+        FILE *fp = fopen(argv[1], "r");
+
+        if(!fp)
+        {
+            cout << "Error: Cannot open " << argv[1] << endl;
             return 1;
         }
+
         yyin = fp;
     }
+    else
+    {
+        cout << "[COMPILER] Enter StoryScript program (CTRL+D to finish)\n\n";
 
+        string program;
+        char buffer[1024];
+        int n;
+
+        while((n = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0)
+        {
+            program.append(buffer, n);
+        }
+        yylineno = 1;
+
+        yy_scan_string(program.c_str());
+    }
+
+    /* Parsing */
     yyparse();
 
+    /* STOP if syntax error */
+    if(hasSyntaxError){
+        cout << "\n[COMPILER] Syntax Analysis Failed\n";
+        return 1;
+    }
+
+    printPhase("Lexical Analysis");
+    printPhase("Syntax Analysis");
+    printPhase("AST Generation");
+
+    cout << "\n================ AST ================\n";
+    if(root)
+        printAST(root);
+    cout << "=====================================\n";
+
+    /* Execution (also does semantic checking) */
+    cout << "\n[COMPILER] Executing Program...\n\n";
+
     exec(root);
+
+    /* STOP if semantic error */
+    if(hasSemanticError){
+        cout << "\n[COMPILER] Semantic Analysis Failed\n";
+        return 1;
+    }
+
+    printPhase("Execution");
+
+    printSymbolTable();
+
+    cout << "\n=====================================\n";
+    cout << "Compilation Successful\n";
+    cout << "=====================================\n";
 
     return 0;
 }

@@ -45,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 41 "storyscript.y"
+#line 66 "storyscript.y"
 
     struct Node;
 
@@ -84,16 +84,16 @@ extern int yydebug;
     MUL = 279,                     /* MUL  */
     DIV = 280,                     /* DIV  */
     MOD = 281,                     /* MOD  */
-    GT = 282,                      /* GT  */
-    LT = 283,                      /* LT  */
-    GE = 284,                      /* GE  */
-    LE = 285,                      /* LE  */
-    EQ = 286,                      /* EQ  */
-    NE = 287,                      /* NE  */
-    AND = 288,                     /* AND  */
-    OR = 289,                      /* OR  */
-    NOT = 290,                     /* NOT  */
-    ASSIGN = 291,                  /* ASSIGN  */
+    ASSIGN = 282,                  /* ASSIGN  */
+    GT = 283,                      /* GT  */
+    LT = 284,                      /* LT  */
+    GE = 285,                      /* GE  */
+    LE = 286,                      /* LE  */
+    EQ = 287,                      /* EQ  */
+    NE = 288,                      /* NE  */
+    AND = 289,                     /* AND  */
+    OR = 290,                      /* OR  */
+    NOT = 291,                     /* NOT  */
     LBRACE = 292,                  /* LBRACE  */
     RBRACE = 293,                  /* RBRACE  */
     LPAREN = 294,                  /* LPAREN  */
@@ -108,7 +108,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 46 "storyscript.y"
+#line 72 "storyscript.y"
 
     int num;
     char* id;
@@ -122,9 +122,23 @@ typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+/* Location type.  */
+#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
+typedef struct YYLTYPE YYLTYPE;
+struct YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+};
+# define YYLTYPE_IS_DECLARED 1
+# define YYLTYPE_IS_TRIVIAL 1
+#endif
+
 
 extern YYSTYPE yylval;
-
+extern YYLTYPE yylloc;
 
 int yyparse (void);
 

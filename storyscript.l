@@ -1,3 +1,5 @@
+%option yylineno
+
 %{
 #include <iostream>
 #include <cstdio>
@@ -9,6 +11,8 @@
 using namespace std;
 
 extern FILE *yyin;
+extern int yylineno;
+extern YYLTYPE yylloc;
 
 enum TokenType {
     T_KEYWORD,
@@ -39,72 +43,257 @@ NUMBER  {DIGIT}+
 
 %%
 
-"story"         { addToken(T_KEYWORD,"KEYWORD: story"); return STORY; }
-"begins"        { addToken(T_KEYWORD,"KEYWORD: begins"); return BEGINS; }
-"end story"     { addToken(T_KEYWORD,"KEYWORD: end story"); return ENDSTORY; }
+"story" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: story");
+    return STORY;
+}
 
-"character"     { addToken(T_KEYWORD,"KEYWORD: character"); return CHARACTER; }
-"holds"         { addToken(T_KEYWORD,"KEYWORD: holds"); return HOLDS; }
+"begins" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: begins");
+    return BEGINS;
+}
 
-"when"          { addToken(T_KEYWORD,"KEYWORD: when"); return WHEN; }
-"otherwise"     { addToken(T_KEYWORD,"KEYWORD: otherwise"); return OTHERWISE; }
-"end choice"    { addToken(T_KEYWORD,"KEYWORD: end choice"); return ENDCHOICE; }
+"end story" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: end story");
+    return ENDSTORY;
+}
 
-"during"        { addToken(T_KEYWORD,"KEYWORD: during"); return DURING; }
-"journey"       { addToken(T_KEYWORD,"KEYWORD: journey"); return JOURNEY; }
-"end cycle"     { addToken(T_KEYWORD,"KEYWORD: end cycle"); return ENDCYCLE; }
+"character" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: character");
+    return CHARACTER;
+}
 
-"chapter"       { addToken(T_KEYWORD,"KEYWORD: chapter"); return CHAPTER; }
-"takes"         { addToken(T_KEYWORD,"KEYWORD: takes"); return TAKES; }
-"return"        { addToken(T_KEYWORD,"KEYWORD: return"); return RETURN; }
-"end chapter"   { addToken(T_KEYWORD,"KEYWORD: end chapter"); return ENDCHAPTER; }
+"holds" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: holds");
+    return HOLDS;
+}
 
-"narrate"       { addToken(T_KEYWORD,"KEYWORD: narrate"); return NARRATE; }
-"listen"        { addToken(T_KEYWORD,"KEYWORD: listen"); return LISTEN; }
+"when" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: when");
+    return WHEN;
+}
 
-"and"           { addToken(T_OPERATOR,"LOGICAL OPERATOR: and"); return AND; }
-"or"            { addToken(T_OPERATOR,"LOGICAL OPERATOR: or"); return OR; }
-"not"           { addToken(T_OPERATOR,"LOGICAL OPERATOR: not"); return NOT; }
+"otherwise" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: otherwise");
+    return OTHERWISE;
+}
 
-"=="            { addToken(T_OPERATOR,"OPERATOR: =="); return EQ; }
-"!="            { addToken(T_OPERATOR,"OPERATOR: !="); return NE; }
-">="            { addToken(T_OPERATOR,"OPERATOR: >="); return GE; }
-"<="            { addToken(T_OPERATOR,"OPERATOR: <="); return LE; }
-">"             { addToken(T_OPERATOR,"OPERATOR: >"); return GT; }
-"<"             { addToken(T_OPERATOR,"OPERATOR: <"); return LT; }
+"end choice" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: end choice");
+    return ENDCHOICE;
+}
 
-"="             { addToken(T_OPERATOR,"OPERATOR: ="); return ASSIGN; }
+"during" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: during");
+    return DURING;
+}
 
-"+"             { addToken(T_OPERATOR,"OPERATOR: +"); return PLUS; }
-"-"             { addToken(T_OPERATOR,"OPERATOR: -"); return MINUS; }
-"*"             { addToken(T_OPERATOR,"OPERATOR: *"); return MUL; }
-"/"             { addToken(T_OPERATOR,"OPERATOR: /"); return DIV; }
-"%"             { addToken(T_OPERATOR,"OPERATOR: %"); return MOD; }
+"journey" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: journey");
+    return JOURNEY;
+}
 
-"{"             { addToken(T_SYMBOL,"SYMBOL: {"); return LBRACE; }
-"}"             { addToken(T_SYMBOL,"SYMBOL: }"); return RBRACE; }
-"("             { addToken(T_SYMBOL,"SYMBOL: ("); return LPAREN; }
-")"             { addToken(T_SYMBOL,"SYMBOL: )"); return RPAREN; }
-";"             { addToken(T_SYMBOL,"SYMBOL: ;"); return SEMICOLON; }
+"end cycle" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: end cycle");
+    return ENDCYCLE;
+}
+
+"chapter" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: chapter");
+    return CHAPTER;
+}
+
+"takes" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: takes");
+    return TAKES;
+}
+
+"return" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: return");
+    return RETURN;
+}
+
+"end chapter" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: end chapter");
+    return ENDCHAPTER;
+}
+
+"narrate" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: narrate");
+    return NARRATE;
+}
+
+"listen" {
+    yylloc.first_line = yylineno;
+    addToken(T_KEYWORD,"KEYWORD: listen");
+    return LISTEN;
+}
+
+"and" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"LOGICAL OPERATOR: and");
+    return AND;
+}
+
+"or" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"LOGICAL OPERATOR: or");
+    return OR;
+}
+
+"not" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"LOGICAL OPERATOR: not");
+    return NOT;
+}
+
+"==" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: ==");
+    return EQ;
+}
+
+"!=" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: !=");
+    return NE;
+}
+
+">=" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: >=");
+    return GE;
+}
+
+"<=" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: <=");
+    return LE;
+}
+
+">" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: >");
+    return GT;
+}
+
+"<" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: <");
+    return LT;
+}
+
+"=" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: =");
+    return ASSIGN;
+}
+
+"+" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: +");
+    return PLUS;
+}
+
+"-" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: -");
+    return MINUS;
+}
+
+"*" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: *");
+    return MUL;
+}
+
+"/" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: /");
+    return DIV;
+}
+
+"%" {
+    yylloc.first_line = yylineno;
+    addToken(T_OPERATOR,"OPERATOR: %");
+    return MOD;
+}
+
+"{" {
+    yylloc.first_line = yylineno;
+    addToken(T_SYMBOL,"SYMBOL: {");
+    return LBRACE;
+}
+
+"}" {
+    yylloc.first_line = yylineno;
+    addToken(T_SYMBOL,"SYMBOL: }");
+    return RBRACE;
+}
+
+"(" {
+    yylloc.first_line = yylineno;
+    addToken(T_SYMBOL,"SYMBOL: (");
+    return LPAREN;
+}
+
+")" {
+    yylloc.first_line = yylineno;
+    addToken(T_SYMBOL,"SYMBOL: )");
+    return RPAREN;
+}
+
+";" {
+    yylloc.first_line = yylineno;
+    addToken(T_SYMBOL,"SYMBOL: ;");
+    return SEMICOLON;
+}
+
+"," {
+    yylloc.first_line = yylineno; 
+    addToken(T_SYMBOL,"SYMBOL: ,");
+    return COMMA; 
+}
 
 {NUMBER} {
+    yylloc.first_line = yylineno;
     addToken(T_NUMBER,string("NUMBER: ") + yytext);
     yylval.num = atoi(yytext);
     return NUMBER;
 }
 
 {ID} {
+    yylloc.first_line = yylineno;
     addToken(T_IDENTIFIER,string("IDENTIFIER: ") + yytext);
     yylval.id = strdup(yytext);
     return IDENTIFIER;
 }
 
-[ \t\n]+        ;
+[ \t]+     ;
+\n         ;
 
-.               { addToken(T_INVALID,string("INVALID TOKEN: ") + yytext); }
+. {
+    yylloc.first_line = yylineno;
+    addToken(T_INVALID,string("INVALID TOKEN: ") + yytext);
+}
 
 %%
-
 int yywrap() {
     return 1;
 }
