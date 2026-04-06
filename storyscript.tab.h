@@ -45,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 66 "storyscript.y"
+#line 86 "storyscript.y"
 
     struct Node;
 
@@ -108,7 +108,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 72 "storyscript.y"
+#line 92 "storyscript.y"
 
     int num;
     char* id;

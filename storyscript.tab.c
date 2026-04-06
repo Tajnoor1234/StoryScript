@@ -109,10 +109,30 @@ struct Node{
     }
 };
 
+map<string, Node*> functionTable;
+
 Node* root=nullptr;
+
+int tempCount = 0;
+int labelCount = 0;
+
+string newTemp() {
+    return "t" + to_string(tempCount++);
+}
+
+string newLabel() {
+    return "L" + to_string(labelCount++);
+}
 
 int eval(Node* n);
 void exec(Node* n);
+
+string generateExpr(Node* n);
+void generateIR(Node* n);
+
+string genExpr(Node* n, int lang);
+void generateCode(Node* n, int lang, int indent = 0);
+string indentStr(int indent);
 
 int getLine()
 {
@@ -131,7 +151,7 @@ void printPhase(string phase)
     cout << "[COMPILER] " << phase << " completed.\n";
 }
 
-#line 135 "storyscript.tab.c"
+#line 155 "storyscript.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -214,8 +234,9 @@ enum yysymbol_kind_t
   YYSYMBOL_loop = 52,                      /* loop  */
   YYSYMBOL_function = 53,                  /* function  */
   YYSYMBOL_parameter_list = 54,            /* parameter_list  */
-  YYSYMBOL_condition = 55,                 /* condition  */
-  YYSYMBOL_expression = 56                 /* expression  */
+  YYSYMBOL_argument_list = 55,             /* argument_list  */
+  YYSYMBOL_condition = 56,                 /* condition  */
+  YYSYMBOL_expression = 57                 /* expression  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -546,16 +567,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  4
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   163
+#define YYLAST   259
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  43
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  14
+#define YYNNTS  15
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  36
+#define YYNRULES  45
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  79
+#define YYNSTATES  100
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   297
@@ -608,10 +629,11 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   111,   111,   118,   126,   132,   133,   134,   135,   136,
-     137,   138,   139,   147,   155,   163,   171,   179,   185,   193,
-     202,   213,   224,   236,   242,   254,   261,   268,   275,   282,
-     288,   297,   304,   311,   318,   325,   331
+       0,   132,   132,   139,   145,   153,   154,   155,   156,   157,
+     158,   159,   160,   168,   176,   184,   192,   200,   206,   214,
+     223,   234,   244,   254,   270,   277,   287,   293,   305,   312,
+     319,   326,   333,   340,   347,   354,   361,   367,   375,   382,
+     389,   396,   403,   407,   413,   420
 };
 #endif
 
@@ -635,8 +657,8 @@ static const char *const yytname[] =
   "NE", "AND", "OR", "NOT", "LBRACE", "RBRACE", "LPAREN", "RPAREN",
   "SEMICOLON", "COMMA", "$accept", "program", "statement_list",
   "statement", "declaration", "assignment", "output", "input",
-  "conditional", "loop", "function", "parameter_list", "condition",
-  "expression", YY_NULLPTR
+  "conditional", "loop", "function", "parameter_list", "argument_list",
+  "condition", "expression", YY_NULLPTR
 };
 
 static const char *
@@ -646,12 +668,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-20)
+#define YYPACT_NINF (-24)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-5)
+#define YYTABLE_NINF (-1)
 
 #define yytable_value_is_error(Yyn) \
   0
@@ -660,14 +682,16 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-      -1,    -6,    16,    15,   -20,    89,   -16,     9,   108,   108,
-      22,    20,    24,    45,    46,    73,   -20,   -20,   -20,   -20,
-     -20,   -20,   -20,   -20,    52,   -20,   -20,   108,   108,    12,
-     130,    42,    34,   -19,    23,    20,   -20,   -20,    20,   -20,
-      64,   108,   108,    54,    20,    20,    20,    20,    20,    20,
-      57,    53,   -20,   -20,   -13,    44,   -20,   -20,    41,   104,
-     -17,   -17,   -20,   -20,   138,   138,   -20,    38,   119,   -20,
-     -20,    78,    53,    80,   -20,   -20,    20,   126,   -20
+       2,   -13,    20,    19,   -24,   183,    -8,     6,    -9,    -9,
+      15,    -5,    30,    48,    91,   -24,   -24,   -24,   -24,   -24,
+     -24,   -24,   -24,   -24,    51,    23,   -24,    -9,    -9,    55,
+     209,    55,    44,    -5,    29,    24,    -5,   -24,   -24,    -5,
+      -5,   -24,   -16,   186,    -9,    -9,   106,    -5,    -5,    -5,
+      -5,    -5,    -5,    -5,    -5,    -5,    -5,   121,    47,   205,
+     -24,   -24,    59,   182,    28,   -21,   -24,   -24,   -24,    37,
+     183,   -15,   -15,   -24,   -24,   234,   234,   234,   234,   234,
+     234,   -24,    22,   136,   -24,   -24,   -24,    -5,   152,    47,
+      -5,   167,   -24,   -24,   -24,   226,    -5,   -24,   230,   -24
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -676,27 +700,29 @@ static const yytype_int16 yypact[] =
 static const yytype_int8 yydefact[] =
 {
        0,     0,     0,     0,     1,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     5,     6,    11,    10,
-       7,     8,     9,    12,     0,    36,    35,     0,     0,     0,
-       0,     0,     0,    18,     0,     0,     2,     3,     0,    29,
+       0,     0,     0,     0,     0,     3,     5,     6,    11,    10,
+       7,     8,     9,    12,     0,    44,    43,     0,     0,     0,
+       0,     0,     0,     0,    18,     0,     0,     2,     4,     0,
+       0,    36,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,    17,    19,    16,    14,    30,    27,    28,     0,
-      31,    32,    33,    34,    25,    26,    21,    23,     0,    15,
-      13,     0,     0,     0,    20,    24,     0,     0,    22
+      17,    19,    16,    14,     0,    26,    37,    42,    34,    35,
+       0,    38,    39,    40,    41,    28,    29,    32,    33,    30,
+      31,    21,    24,     0,    15,    13,    45,     0,     0,     0,
+       0,     0,    27,    20,    25,     0,     0,    23,     0,    22
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -20,   -20,   -14,   -20,   -20,   -20,   -20,   -20,   -20,   -20,
-     -20,    29,    30,   -11
+     -24,   -24,   -23,     0,   -24,   -24,   -24,   -24,   -24,   -24,
+     -24,   -17,   -10,     4,   -11
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
        0,     2,    14,    15,    16,    17,    18,    19,    20,    21,
-      22,    68,    29,    30
+      22,    83,    64,    29,    30
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -704,44 +730,62 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      33,    37,     1,    44,    45,    46,    47,    46,    47,    44,
-      45,    46,    47,     6,     3,    43,     4,    50,     7,     5,
-       8,    -4,    52,     9,    54,    23,    10,    55,    69,    24,
-      11,    12,    13,    60,    61,    62,    63,    64,    65,    31,
-      25,    26,    32,     6,    34,    71,    41,    42,     7,    51,
-       8,    36,    35,     9,    73,    -4,    10,    39,    40,    38,
-      11,    12,    13,    59,    53,    77,    44,    45,    46,    47,
-      66,    57,    58,    67,     6,    41,    41,    42,    -4,     7,
-      72,     8,    -4,    -4,     9,    70,    -4,    10,    74,    -4,
-       6,    11,    12,    13,    -4,     7,    76,     8,    41,    42,
-       9,    75,     0,    10,    56,     6,     0,    11,    12,    13,
-       7,     0,     8,     0,    -4,     9,     0,     0,    10,     0,
-       6,     0,    11,    12,    13,     7,     0,     8,    25,    26,
-       9,     0,     0,    10,     0,    -4,     0,    11,    12,    13,
-       0,     0,     0,    78,    27,     0,     0,    28,    44,    45,
-      46,    47,    44,    45,    46,    47,     0,     0,    48,    49,
-      44,    45,    46,    47
+      34,    47,    48,    49,    50,     1,    46,     3,    57,    49,
+      50,    25,    26,    31,    38,    25,    26,    43,    44,    45,
+       4,    87,    59,     5,    66,    62,    24,    27,    63,    65,
+      28,    41,    42,    23,    33,    32,    71,    72,    73,    74,
+      75,    76,    77,    78,    79,    80,    38,    88,    68,    69,
+      35,    47,    48,    49,    50,    36,     6,    38,    39,    58,
+      91,     7,    40,     8,    89,    61,     9,    82,    86,    10,
+      60,    44,    94,    11,    12,    13,    65,    92,     0,    95,
+       0,    47,    48,    49,    50,    98,     0,     0,    38,    44,
+      45,    38,     6,     0,     0,     0,    37,     7,     0,     8,
+      84,     0,     9,     0,     0,    10,     0,     6,     0,    11,
+      12,    13,     7,     0,     8,    70,     0,     9,     0,     0,
+      10,     0,     6,     0,    11,    12,    13,     7,     0,     8,
+       0,     0,     9,     0,    81,    10,     0,     6,     0,    11,
+      12,    13,     7,     0,     8,     0,     0,     9,     0,     0,
+      10,     0,    90,     6,    11,    12,    13,     0,     7,     0,
+       8,     0,    93,     9,     0,     0,    10,     0,     6,     0,
+      11,    12,    13,     7,     0,     8,     0,     0,     9,     0,
+       0,    10,     0,    96,     6,    11,    12,    13,     0,     7,
+       0,     8,     0,     0,     9,     0,     0,    10,     0,     0,
+       0,    11,    12,    13,    47,    48,    49,    50,    47,    48,
+      49,    50,     0,     0,    51,    52,    53,    54,    55,    56,
+       0,     0,     0,    85,     0,     0,    67,    47,    48,    49,
+      50,    47,    48,    49,    50,     0,     0,    51,    52,    53,
+      54,    55,    56,    97,     0,    67,     0,    99,    47,    48,
+      49,    50,    47,    48,    49,    50,    47,    48,    49,    50
 };
 
 static const yytype_int8 yycheck[] =
 {
-      11,    15,     3,    22,    23,    24,    25,    24,    25,    22,
-      23,    24,    25,     1,    20,    29,     0,    31,     6,     4,
-       8,     9,    41,    11,    35,    41,    14,    38,    41,    20,
-      18,    19,    20,    44,    45,    46,    47,    48,    49,     9,
-      20,    21,    20,     1,    20,    59,    34,    35,     6,    15,
-       8,     5,     7,    11,    68,    13,    14,    27,    28,     7,
-      18,    19,    20,     9,    41,    76,    22,    23,    24,    25,
-      13,    41,    42,    20,     1,    34,    34,    35,     5,     6,
-      42,     8,     9,    10,    11,    41,    13,    14,    10,    16,
-       1,    18,    19,    20,     5,     6,    16,     8,    34,    35,
-      11,    72,    -1,    14,    40,     1,    -1,    18,    19,    20,
-       6,    -1,     8,    -1,    10,    11,    -1,    -1,    14,    -1,
-       1,    -1,    18,    19,    20,     6,    -1,     8,    20,    21,
-      11,    -1,    -1,    14,    -1,    16,    -1,    18,    19,    20,
-      -1,    -1,    -1,    17,    36,    -1,    -1,    39,    22,    23,
-      24,    25,    22,    23,    24,    25,    -1,    -1,    28,    29,
-      22,    23,    24,    25
+      11,    22,    23,    24,    25,     3,    29,    20,    31,    24,
+      25,    20,    21,     9,    14,    20,    21,    28,    34,    35,
+       0,    42,    33,     4,    40,    36,    20,    36,    39,    40,
+      39,    27,    28,    41,    39,    20,    47,    48,    49,    50,
+      51,    52,    53,    54,    55,    56,    46,    70,    44,    45,
+      20,    22,    23,    24,    25,     7,     1,    57,     7,    15,
+      83,     6,    39,     8,    42,    41,    11,    20,    40,    14,
+      41,    34,    89,    18,    19,    20,    87,    87,    -1,    90,
+      -1,    22,    23,    24,    25,    96,    -1,    -1,    88,    34,
+      35,    91,     1,    -1,    -1,    -1,     5,     6,    -1,     8,
+      41,    -1,    11,    -1,    -1,    14,    -1,     1,    -1,    18,
+      19,    20,     6,    -1,     8,     9,    -1,    11,    -1,    -1,
+      14,    -1,     1,    -1,    18,    19,    20,     6,    -1,     8,
+      -1,    -1,    11,    -1,    13,    14,    -1,     1,    -1,    18,
+      19,    20,     6,    -1,     8,    -1,    -1,    11,    -1,    -1,
+      14,    -1,    16,     1,    18,    19,    20,    -1,     6,    -1,
+       8,    -1,    10,    11,    -1,    -1,    14,    -1,     1,    -1,
+      18,    19,    20,     6,    -1,     8,    -1,    -1,    11,    -1,
+      -1,    14,    -1,    16,     1,    18,    19,    20,    -1,     6,
+      -1,     8,    -1,    -1,    11,    -1,    -1,    14,    -1,    -1,
+      -1,    18,    19,    20,    22,    23,    24,    25,    22,    23,
+      24,    25,    -1,    -1,    28,    29,    30,    31,    32,    33,
+      -1,    -1,    -1,    41,    -1,    -1,    40,    22,    23,    24,
+      25,    22,    23,    24,    25,    -1,    -1,    28,    29,    30,
+      31,    32,    33,    17,    -1,    40,    -1,    17,    22,    23,
+      24,    25,    22,    23,    24,    25,    22,    23,    24,    25
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
@@ -750,12 +794,14 @@ static const yytype_int8 yystos[] =
 {
        0,     3,    44,    20,     0,     4,     1,     6,     8,    11,
       14,    18,    19,    20,    45,    46,    47,    48,    49,    50,
-      51,    52,    53,    41,    20,    20,    21,    36,    39,    55,
-      56,    55,    20,    56,    20,     7,     5,    45,     7,    55,
-      55,    34,    35,    45,    22,    23,    24,    25,    28,    29,
-      45,    15,    41,    41,    56,    56,    40,    55,    55,     9,
-      56,    56,    56,    56,    56,    56,    13,    20,    54,    41,
-      41,    45,    42,    45,    10,    54,    16,    56,    17
+      51,    52,    53,    41,    20,    20,    21,    36,    39,    56,
+      57,    56,    20,    39,    57,    20,     7,     5,    46,     7,
+      39,    56,    56,    57,    34,    35,    45,    22,    23,    24,
+      25,    28,    29,    30,    31,    32,    33,    45,    15,    57,
+      41,    41,    57,    57,    55,    57,    40,    40,    56,    56,
+       9,    57,    57,    57,    57,    57,    57,    57,    57,    57,
+      57,    13,    20,    54,    41,    41,    40,    42,    45,    42,
+      16,    45,    55,    10,    54,    57,    16,    17,    57,    17
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
@@ -763,17 +809,19 @@ static const yytype_int8 yyr1[] =
 {
        0,    43,    44,    45,    45,    46,    46,    46,    46,    46,
       46,    46,    46,    47,    47,    48,    48,    49,    49,    50,
-      51,    52,    53,    54,    54,    55,    55,    55,    55,    55,
-      55,    56,    56,    56,    56,    56,    56
+      51,    52,    53,    53,    54,    54,    55,    55,    56,    56,
+      56,    56,    56,    56,    56,    56,    56,    56,    57,    57,
+      57,    57,    57,    57,    57,    57
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     5,     2,     0,     1,     1,     1,     1,     1,
+       0,     2,     5,     1,     2,     1,     1,     1,     1,     1,
        1,     1,     2,     5,     4,     4,     3,     3,     2,     3,
-       6,     4,     8,     1,     3,     3,     3,     3,     3,     2,
-       3,     3,     3,     3,     3,     1,     1
+       6,     4,     8,     7,     1,     3,     1,     3,     3,     3,
+       3,     3,     3,     3,     3,     3,     2,     3,     3,     3,
+       3,     3,     3,     1,     1,     4
 };
 
 
@@ -1350,44 +1398,44 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: STORY IDENTIFIER BEGINS statement_list ENDSTORY  */
-#line 112 "storyscript.y"
+#line 133 "storyscript.y"
 {
     root = (yyvsp[-1].node);
 }
-#line 1358 "storyscript.tab.c"
+#line 1406 "storyscript.tab.c"
     break;
 
-  case 3: /* statement_list: statement statement_list  */
-#line 119 "storyscript.y"
+  case 3: /* statement_list: statement  */
+#line 140 "storyscript.y"
 {
     Node* n = new Node("block");
-    n->children.push_back((yyvsp[-1].node));
-    if((yyvsp[0].node)) n->children.push_back((yyvsp[0].node));
+    n->children.push_back((yyvsp[0].node));
     (yyval.node) = n;
 }
-#line 1369 "storyscript.tab.c"
+#line 1416 "storyscript.tab.c"
     break;
 
-  case 4: /* statement_list: %empty  */
-#line 126 "storyscript.y"
+  case 4: /* statement_list: statement_list statement  */
+#line 146 "storyscript.y"
 {
-    (yyval.node) = nullptr;
+    (yyvsp[-1].node)->children.push_back((yyvsp[0].node));
+    (yyval.node) = (yyvsp[-1].node);
 }
-#line 1377 "storyscript.tab.c"
+#line 1425 "storyscript.tab.c"
     break;
 
   case 12: /* statement: error SEMICOLON  */
-#line 139 "storyscript.y"
+#line 160 "storyscript.y"
                     { 
       hasSyntaxError = true; 
       yyerrok; 
       cout << "Recovered from syntax error\n"; 
   }
-#line 1387 "storyscript.tab.c"
+#line 1435 "storyscript.tab.c"
     break;
 
   case 13: /* declaration: CHARACTER IDENTIFIER HOLDS expression SEMICOLON  */
-#line 148 "storyscript.y"
+#line 169 "storyscript.y"
 {
     Node* n = new Node("declare");
     n->id = (yyvsp[-3].id);
@@ -1395,20 +1443,20 @@ yyreduce:
     n->line = (yylsp[-3]).first_line;
     (yyval.node) = n;
 }
-#line 1399 "storyscript.tab.c"
+#line 1447 "storyscript.tab.c"
     break;
 
   case 14: /* declaration: CHARACTER IDENTIFIER HOLDS expression  */
-#line 156 "storyscript.y"
+#line 177 "storyscript.y"
 {
     hasSyntaxError = true;
     cout << "Line " << (yylsp[0]).first_line << ": Missing ';' after declaration\n";
 }
-#line 1408 "storyscript.tab.c"
+#line 1456 "storyscript.tab.c"
     break;
 
   case 15: /* assignment: IDENTIFIER HOLDS expression SEMICOLON  */
-#line 164 "storyscript.y"
+#line 185 "storyscript.y"
 {
     Node* n = new Node("assign");
     n->id = (yyvsp[-3].id);
@@ -1416,49 +1464,49 @@ yyreduce:
     n->line = (yylsp[-3]).first_line;
     (yyval.node) = n;
 }
-#line 1420 "storyscript.tab.c"
+#line 1468 "storyscript.tab.c"
     break;
 
   case 16: /* assignment: IDENTIFIER HOLDS expression  */
-#line 172 "storyscript.y"
+#line 193 "storyscript.y"
 {
     hasSyntaxError = true;
     cout << "Line " << (yylsp[0]).first_line << ": Missing ';' after assignment\n";
 }
-#line 1429 "storyscript.tab.c"
+#line 1477 "storyscript.tab.c"
     break;
 
   case 17: /* output: NARRATE expression SEMICOLON  */
-#line 180 "storyscript.y"
+#line 201 "storyscript.y"
 {
     Node* n = new Node("print");
     n->left = (yyvsp[-1].node);
     (yyval.node) = n;
 }
-#line 1439 "storyscript.tab.c"
+#line 1487 "storyscript.tab.c"
     break;
 
   case 18: /* output: NARRATE expression  */
-#line 186 "storyscript.y"
+#line 207 "storyscript.y"
 {
     hasSyntaxError = true;
     cout << "Line " << (yylsp[0]).first_line << ": Missing ';' after narrate\n";
 }
-#line 1448 "storyscript.tab.c"
+#line 1496 "storyscript.tab.c"
     break;
 
   case 19: /* input: LISTEN IDENTIFIER SEMICOLON  */
-#line 194 "storyscript.y"
+#line 215 "storyscript.y"
 {
     Node* n = new Node("input");
     n->id = (yyvsp[-1].id);
     (yyval.node) = n;
 }
-#line 1458 "storyscript.tab.c"
+#line 1506 "storyscript.tab.c"
     break;
 
   case 20: /* conditional: WHEN condition statement_list OTHERWISE statement_list ENDCHOICE  */
-#line 203 "storyscript.y"
+#line 224 "storyscript.y"
 {
     Node* n = new Node("if");
     n->left = (yyvsp[-4].node);
@@ -1466,183 +1514,287 @@ yyreduce:
     n->children.push_back((yyvsp[-1].node));
     (yyval.node) = n;
 }
-#line 1470 "storyscript.tab.c"
+#line 1518 "storyscript.tab.c"
     break;
 
   case 21: /* loop: DURING condition statement_list ENDCYCLE  */
-#line 214 "storyscript.y"
+#line 235 "storyscript.y"
 {
     Node* n = new Node("loop");
     n->left = (yyvsp[-2].node);
     n->children.push_back((yyvsp[-1].node));
     (yyval.node) = n;
 }
-#line 1481 "storyscript.tab.c"
+#line 1529 "storyscript.tab.c"
     break;
 
   case 22: /* function: CHAPTER IDENTIFIER TAKES parameter_list statement_list RETURN expression ENDCHAPTER  */
-#line 225 "storyscript.y"
+#line 245 "storyscript.y"
 {
     Node* n = new Node("function");
     n->id = (yyvsp[-6].id);
-    n->children.push_back((yyvsp[-4].node));  // parameters
-    n->children.push_back((yyvsp[-3].node));  // body
-    n->left = (yyvsp[-1].node);               // return expression
+    n->line = (yylsp[-6]).first_line;
+    n->children.push_back((yyvsp[-4].node));
+    n->children.push_back((yyvsp[-3].node));
+    n->left = (yyvsp[-1].node);
     (yyval.node) = n;
 }
-#line 1494 "storyscript.tab.c"
+#line 1543 "storyscript.tab.c"
     break;
 
-  case 23: /* parameter_list: IDENTIFIER  */
-#line 237 "storyscript.y"
+  case 23: /* function: CHAPTER IDENTIFIER TAKES parameter_list RETURN expression ENDCHAPTER  */
+#line 255 "storyscript.y"
+{
+    Node* n = new Node("function");
+    n->id = (yyvsp[-5].id);
+    n->line = (yylsp[-5]).first_line;
+    n->children.push_back((yyvsp[-3].node));
+
+    Node* emptyBody = new Node("block");   // ✅ empty body
+    n->children.push_back(emptyBody);
+
+    n->left = (yyvsp[-1].node);
+    (yyval.node) = n;
+}
+#line 1560 "storyscript.tab.c"
+    break;
+
+  case 24: /* parameter_list: IDENTIFIER  */
+#line 271 "storyscript.y"
 {
     Node* n = new Node("param");
     n->id = (yyvsp[0].id);
+    n->line = (yylsp[0]).first_line;
     (yyval.node) = n;
 }
-#line 1504 "storyscript.tab.c"
+#line 1571 "storyscript.tab.c"
     break;
 
-  case 24: /* parameter_list: IDENTIFIER COMMA parameter_list  */
-#line 243 "storyscript.y"
+  case 25: /* parameter_list: IDENTIFIER COMMA parameter_list  */
+#line 278 "storyscript.y"
 {
     Node* n = new Node("param");
     n->id = (yyvsp[-2].id);
     if((yyvsp[0].node)) n->children.push_back((yyvsp[0].node));
     (yyval.node) = n;
 }
-#line 1515 "storyscript.tab.c"
+#line 1582 "storyscript.tab.c"
     break;
 
-  case 25: /* condition: expression GT expression  */
-#line 255 "storyscript.y"
+  case 26: /* argument_list: expression  */
+#line 288 "storyscript.y"
+{
+    Node* n = new Node("arg");
+    n->children.push_back((yyvsp[0].node));
+    (yyval.node) = n;
+}
+#line 1592 "storyscript.tab.c"
+    break;
+
+  case 27: /* argument_list: expression COMMA argument_list  */
+#line 294 "storyscript.y"
+{
+    Node* n = new Node("arg");
+    n->children.push_back((yyvsp[-2].node));
+    if((yyvsp[0].node)) n->children.push_back((yyvsp[0].node));
+    (yyval.node) = n;
+}
+#line 1603 "storyscript.tab.c"
+    break;
+
+  case 28: /* condition: expression GT expression  */
+#line 306 "storyscript.y"
 {
     Node* n = new Node("gt");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1526 "storyscript.tab.c"
+#line 1614 "storyscript.tab.c"
     break;
 
-  case 26: /* condition: expression LT expression  */
-#line 262 "storyscript.y"
+  case 29: /* condition: expression LT expression  */
+#line 313 "storyscript.y"
 {
     Node* n = new Node("lt");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1537 "storyscript.tab.c"
+#line 1625 "storyscript.tab.c"
     break;
 
-  case 27: /* condition: condition AND condition  */
-#line 269 "storyscript.y"
+  case 30: /* condition: expression EQ expression  */
+#line 320 "storyscript.y"
+{
+    Node* n = new Node("eq");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1636 "storyscript.tab.c"
+    break;
+
+  case 31: /* condition: expression NE expression  */
+#line 327 "storyscript.y"
+{
+    Node* n = new Node("ne");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1647 "storyscript.tab.c"
+    break;
+
+  case 32: /* condition: expression GE expression  */
+#line 334 "storyscript.y"
+{
+    Node* n = new Node("ge");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1658 "storyscript.tab.c"
+    break;
+
+  case 33: /* condition: expression LE expression  */
+#line 341 "storyscript.y"
+{
+    Node* n = new Node("le");
+    n->left = (yyvsp[-2].node);
+    n->right = (yyvsp[0].node);
+    (yyval.node) = n;
+}
+#line 1669 "storyscript.tab.c"
+    break;
+
+  case 34: /* condition: condition AND condition  */
+#line 348 "storyscript.y"
 {
     Node* n = new Node("and");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1548 "storyscript.tab.c"
+#line 1680 "storyscript.tab.c"
     break;
 
-  case 28: /* condition: condition OR condition  */
-#line 276 "storyscript.y"
+  case 35: /* condition: condition OR condition  */
+#line 355 "storyscript.y"
 {
     Node* n = new Node("or");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1559 "storyscript.tab.c"
+#line 1691 "storyscript.tab.c"
     break;
 
-  case 29: /* condition: NOT condition  */
-#line 283 "storyscript.y"
+  case 36: /* condition: NOT condition  */
+#line 362 "storyscript.y"
 {
     Node* n = new Node("not");
     n->left = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1569 "storyscript.tab.c"
+#line 1701 "storyscript.tab.c"
     break;
 
-  case 30: /* condition: LPAREN condition RPAREN  */
-#line 289 "storyscript.y"
+  case 37: /* condition: LPAREN condition RPAREN  */
+#line 368 "storyscript.y"
 {
     (yyval.node) = (yyvsp[-1].node);
 }
-#line 1577 "storyscript.tab.c"
+#line 1709 "storyscript.tab.c"
     break;
 
-  case 31: /* expression: expression PLUS expression  */
-#line 298 "storyscript.y"
+  case 38: /* expression: expression PLUS expression  */
+#line 376 "storyscript.y"
 {
     Node* n = new Node("add");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1588 "storyscript.tab.c"
+#line 1720 "storyscript.tab.c"
     break;
 
-  case 32: /* expression: expression MINUS expression  */
-#line 305 "storyscript.y"
+  case 39: /* expression: expression MINUS expression  */
+#line 383 "storyscript.y"
 {
     Node* n = new Node("sub");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1599 "storyscript.tab.c"
+#line 1731 "storyscript.tab.c"
     break;
 
-  case 33: /* expression: expression MUL expression  */
-#line 312 "storyscript.y"
+  case 40: /* expression: expression MUL expression  */
+#line 390 "storyscript.y"
 {
     Node* n = new Node("mul");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1610 "storyscript.tab.c"
+#line 1742 "storyscript.tab.c"
     break;
 
-  case 34: /* expression: expression DIV expression  */
-#line 319 "storyscript.y"
+  case 41: /* expression: expression DIV expression  */
+#line 397 "storyscript.y"
 {
     Node* n = new Node("div");
     n->left = (yyvsp[-2].node);
     n->right = (yyvsp[0].node);
     (yyval.node) = n;
 }
-#line 1621 "storyscript.tab.c"
+#line 1753 "storyscript.tab.c"
     break;
 
-  case 35: /* expression: NUMBER  */
-#line 326 "storyscript.y"
+  case 42: /* expression: LPAREN expression RPAREN  */
+#line 404 "storyscript.y"
+{
+    (yyval.node) = (yyvsp[-1].node);
+}
+#line 1761 "storyscript.tab.c"
+    break;
+
+  case 43: /* expression: NUMBER  */
+#line 408 "storyscript.y"
 {
     Node* n = new Node("num");
     n->value = (yyvsp[0].num);
     (yyval.node) = n;
 }
-#line 1631 "storyscript.tab.c"
+#line 1771 "storyscript.tab.c"
     break;
 
-  case 36: /* expression: IDENTIFIER  */
-#line 332 "storyscript.y"
+  case 44: /* expression: IDENTIFIER  */
+#line 414 "storyscript.y"
 {
     Node* n = new Node("var");
     n->id = (yyvsp[0].id);
     n->line = (yylsp[0]).first_line;
     (yyval.node) = n;
 }
-#line 1642 "storyscript.tab.c"
+#line 1782 "storyscript.tab.c"
+    break;
+
+  case 45: /* expression: IDENTIFIER LPAREN argument_list RPAREN  */
+#line 421 "storyscript.y"
+{
+    Node* n = new Node("call");
+    n->id = (yyvsp[-3].id);
+    n->children.push_back((yyvsp[-1].node));
+    n->line = (yylsp[-3]).first_line;
+    (yyval.node) = n;
+}
+#line 1794 "storyscript.tab.c"
     break;
 
 
-#line 1646 "storyscript.tab.c"
+#line 1798 "storyscript.tab.c"
 
       default: break;
     }
@@ -1840,7 +1992,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 340 "storyscript.y"
+#line 430 "storyscript.y"
 
 
 /* expression evaluation */
@@ -1870,8 +2022,91 @@ int eval(Node* n)
     if(n->type=="and") return eval(n->left)&&eval(n->right);
     if(n->type=="or") return eval(n->left)||eval(n->right);
     if(n->type=="not") return !eval(n->left);
+    if(n->type=="eq") return eval(n->left)==eval(n->right);
+    if(n->type=="ne") return eval(n->left)!=eval(n->right);
+    if(n->type=="ge") return eval(n->left)>=eval(n->right);
+    if(n->type=="le") return eval(n->left)<=eval(n->right);
+    
+    if(n->type == "call"){
+
+       if(functionTable.find(n->id) == functionTable.end()){
+           cout << "Semantic Error (Line " << n->line 
+             << "): Function '" << n->id << "' not defined\n";
+           hasSemanticError = true;
+           return 0;
+       }
+
+       Node* func = functionTable[n->id];
+
+
+       map<string,int> oldTable = symbolTable;
+
+    
+       vector<string> params;
+       Node* p = func->children[0];
+
+       while(p){
+           params.push_back(p->id);
+           if(p->children.empty()) break;
+           p = p->children[0];
+       }
+
+   
+       vector<int> args;
+       Node* argNode = n->children[0];
+
+       while(argNode){
+           args.push_back(eval(argNode->children[0]));
+
+           if(argNode->children.size() < 2) break;
+           argNode = argNode->children[1];
+       }
+
+    
+       if(params.size() != args.size()){
+           cout << "Semantic Error (Line " << n->line 
+             << "): Argument count mismatch in function '" << n->id << "'\n";
+           hasSemanticError = true;
+           return 0;
+       }
+
+    
+       symbolTable.clear();
+
+       for(int i = 0; i < params.size(); i++){
+           symbolTable[params[i]] = args[i];
+       }
+
+   
+       exec(func->children[1]);
+
+    
+       int ret = eval(func->left);
+
+       symbolTable = oldTable;
+
+       return ret;
+    }
 
     return 0;
+}
+
+void checkParams(Node* p, string fname) {
+    map<string, bool> seen;
+
+    while(p){
+        if(seen[p->id]){
+            cout << "Semantic Error (Line " << p->line 
+             << "): Duplicate parameter '" << p->id 
+             << "' in function '" << fname << "'\n";
+            hasSemanticError = true;
+            return;
+        }
+        seen[p->id] = true;
+
+        if(p->children.empty()) break;
+        p = p->children[0];
+    }
 }
 
 /* execute AST */
@@ -1935,9 +2170,376 @@ void exec(Node* n)
     }
 
     else if(n->type=="function"){
-        cout<<"Function "<<n->id<<" parsed"<<endl;
+
+    
+        if(functionTable.find(n->id) != functionTable.end()){
+            cout << "Semantic Error (Line " << n->line 
+             << "): Function '" << n->id << "' already defined\n";
+            hasSemanticError = true;
+            return;
+        }
+
+    
+        functionTable[n->id] = n;
+
+
+        if(n->left == nullptr){
+            cout << "Semantic Error (Line " << n->line 
+             << "): Function '" << n->id 
+             << "' missing return value\n";
+            hasSemanticError = true;
+        }
+
+    
+        checkParams(n->children[0], n->id);
+
+        cout << "Function " << n->id << " registered" << endl;
+     }
+}
+
+// ================= INTERMEDIATE CODE =================
+
+string generateExpr(Node* n) {
+    if (!n) return "";
+    if (n->type == "num") return to_string(n->value);
+    if (n->type == "var") return n->id;
+    if (n->type == "call") {
+       string temp = newTemp();
+
+       string args = "";
+       Node* argNode = n->children[0];
+
+       vector<string> argList;
+
+       while(argNode){
+           argList.push_back(generateExpr(argNode->children[0]));
+
+           if(argNode->children.size() < 2) break;
+           argNode = argNode->children[1];
+       }
+
+       for(int i = 0; i < argList.size(); i++){
+           args += argList[i];
+           if(i != argList.size() - 1) args += ", ";
+       }
+
+       cout << temp << " = call " << n->id << ", " << args << endl;
+
+       return temp;
+    }
+    
+
+    string left = generateExpr(n->left);
+    string right = generateExpr(n->right);
+
+    string temp = newTemp();
+
+    string op;
+    if (n->type == "add") op = "+";
+    if (n->type == "sub") op = "-";
+    if (n->type == "mul") op = "*";
+    if (n->type == "div") op = "/";
+    if (n->type == "gt") op = ">";
+    if (n->type == "lt") op = "<";
+    if (n->type == "and") op = "&&";
+    if (n->type == "or") op = "||";
+    if (n->type == "eq") op = "==";
+    if (n->type == "ne") op = "!=";
+    if (n->type == "ge") op = ">=";
+    if (n->type == "le") op = "<=";
+
+    cout << temp << " = " << left << " " << op << " " << right << endl;
+
+    return temp;
+}
+
+void generateIR(Node* n) {
+    if (!n) return;
+
+    if (n->type == "block") {
+        for (auto c : n->children)
+            generateIR(c);
+    }
+
+    else if (n->type == "declare") {
+        string val = generateExpr(n->left);
+        cout << n->id << " = " << val << endl;
+    }
+
+    else if (n->type == "assign") {
+        string val = generateExpr(n->left);
+        cout << n->id << " = " << val << endl;
+    }
+
+    else if (n->type == "print") {
+        string val = generateExpr(n->left);
+        cout << "print " << val << endl;
+    }
+
+    else if (n->type == "input") {
+        cout << "read " << n->id << endl;
+    }
+
+    else if (n->type == "if") {
+        string cond = generateExpr(n->left);
+
+        string L1 = newLabel();
+        string L2 = newLabel();
+
+        cout << "ifFalse " << cond << " goto " << L1 << endl;
+
+        generateIR(n->children[0]);
+        cout << "goto " << L2 << endl;
+
+        cout << L1 << ":" << endl;
+        if (n->children.size() > 1)
+            generateIR(n->children[1]);
+
+        cout << L2 << ":" << endl;
+    }
+
+    else if (n->type == "loop") {
+        string Lstart = newLabel();
+        string Lend = newLabel();
+
+        cout << Lstart << ":" << endl;
+
+        string cond = generateExpr(n->left);
+        cout << "ifFalse " << cond << " goto " << Lend << endl;
+
+        generateIR(n->children[0]);
+
+        cout << "goto " << Lstart << endl;
+        cout << Lend << ":" << endl;
+    }
+
+    else if (n->type == "function") {
+        cout << "\nfunction " << n->id << ":" << endl;
+
+        Node* params = n->children[0];
+        while (params) {
+            cout << "param " << params->id << endl;
+            if (params->children.empty()) break;
+            params = params->children[0];
+        }
+
+        generateIR(n->children[1]);
+
+        string ret = generateExpr(n->left);
+        cout << "return " << ret << endl;
+
+        cout << "end function\n";
     }
 }
+
+void generateFunctions(Node* n, int lang) {
+    if (!n) return;
+
+    if (n->type == "function") {
+        generateCode(n, lang, 0); // print globally
+    }
+
+    for (auto c : n->children)
+        generateFunctions(c, lang);
+}
+
+// ================= TARGET CODE GENERATION =================
+
+string indentStr(int indent) {
+    return string(indent * 4, ' ');
+}
+
+string genExpr(Node* n, int lang) {
+    if (n->type == "num") return to_string(n->value);
+    if (n->type == "var") return n->id;
+    if (n->type == "call") {
+       string args = "";
+
+       Node* argNode = n->children[0];
+
+       vector<string> argList;
+
+       while(argNode){
+           argList.push_back(genExpr(argNode->children[0], lang));
+
+           if(argNode->children.size() < 2) break;
+           argNode = argNode->children[1];
+       }
+
+       for(int i = 0; i < argList.size(); i++){
+           args += argList[i];
+           if(i != argList.size() - 1) args += ", ";
+       }
+
+       return n->id + "(" + args + ")";
+   }
+    
+
+    string left = genExpr(n->left, lang);
+    string right = (n->right) ? genExpr(n->right, lang) : "";
+
+    string op;
+
+    if (n->type == "add") op = "+";
+    if (n->type == "sub") op = "-";
+    if (n->type == "mul") op = "*";
+    if (n->type == "div") op = "/";
+    if (n->type == "gt") op = ">";
+    if (n->type == "lt") op = "<";
+    if (n->type == "eq") op = "==";
+    if (n->type == "ne") op = "!=";
+    if (n->type == "ge") op = ">=";
+    if (n->type == "le") op = "<=";
+
+    if (n->type == "and")
+        op = (lang == 4) ? "and" : "&&";
+
+    if (n->type == "or")
+        op = (lang == 4) ? "or" : "||";
+
+    if (n->type == "not") {
+        if (lang == 4)
+            return "not " + left;
+        else
+            return "!(" + left + ")";
+    }
+
+    return "(" + left + " " + op + " " + right + ")";
+}
+
+void generateCode(Node* n, int lang, int indent) {
+    if (!n) return;
+
+    string ind = indentStr(indent);
+
+    if (n->type == "block") {
+       for (auto c : n->children) {
+           if (c->type != "function") 
+               generateCode(c, lang, indent);
+      }
+    }
+
+    else if (n->type == "declare") {
+        string val = genExpr(n->left, lang);
+
+        if (lang == 4)
+            cout << ind << n->id << " = " << val << "\n";
+        else
+            cout << ind << "int " << n->id << " = " << val << ";\n";
+    }
+
+    else if (n->type == "assign") {
+        string val = genExpr(n->left, lang);
+        cout << ind << n->id << " = " << val << (lang==4 ? "" : ";") << "\n";
+    }
+
+    else if (n->type == "print") {
+        string val = genExpr(n->left, lang);
+
+        if (lang == 1)
+            cout << ind << "printf(\"%d\\n\", " << val << ");\n";
+        else if (lang == 2)
+            cout << ind << "cout << " << val << " << endl;\n";
+        else if (lang == 3)
+            cout << ind << "System.out.println(" << val << ");\n";
+        else
+            cout << ind << "print(" << val << ")\n";
+    }
+
+    else if (n->type == "input") {
+        if (lang == 1)
+            cout << ind << "scanf(\"%d\", &" << n->id << ");\n";
+        else if (lang == 2)
+            cout << ind << "cin >> " << n->id << ";\n";
+        else if (lang == 3)
+            cout << ind << n->id << " = scanner.nextInt();\n";
+        else
+            cout << ind << n->id << " = int(input())\n";
+    }
+
+    else if (n->type == "if") {
+        string cond = genExpr(n->left, lang);
+
+        if (lang == 4)
+            cout << ind << "if " << cond << ":\n";
+        else
+            cout << ind << "if (" << cond << ") {\n";
+
+        generateCode(n->children[0], lang, indent + 1);
+
+        if (lang == 4)
+            cout << ind << "else:\n";
+        else
+            cout << ind << "} else {\n";
+
+        if (n->children.size() > 1)
+            generateCode(n->children[1], lang, indent + 1);
+
+        if (lang != 4)
+            cout << ind << "}\n";
+    }
+
+    else if (n->type == "loop") {
+        string cond = genExpr(n->left, lang);
+
+        if (lang == 4)
+            cout << ind << "while " << cond << ":\n";
+        else
+            cout << ind << "while (" << cond << ") {\n";
+
+        generateCode(n->children[0], lang, indent + 1);
+
+        if (lang != 4)
+            cout << ind << "}\n";
+    }
+
+    else if (n->type == "function") {
+
+    // extract parameters
+    vector<string> params;
+    Node* p = n->children[0];
+
+    while (p) {
+        params.push_back(p->id);
+        if (p->children.empty()) break;
+        p = p->children[0];
+    }
+
+    if (lang == 4) {
+        cout << "\ndef " << n->id << "(";
+    }
+    else if (lang == 3) {
+        cout << "\nstatic int " << n->id << "(";
+    }
+    else {
+        cout << "\nint " << n->id << "(";
+    }
+
+    // print params
+    for (int i = 0; i < params.size(); i++) {
+        if (lang == 4)
+            cout << params[i];
+        else
+            cout << "int " << params[i];
+
+        if (i != params.size() - 1) cout << ", ";
+    }
+
+    if (lang == 4)
+        cout << "):\n";
+    else
+        cout << ") {\n";
+
+    generateCode(n->children[1], lang, indent + 1);
+
+    string ret = genExpr(n->left, lang);
+    cout << indentStr(indent+1) << "return " << ret << (lang==4 ? "" : ";") << "\n";
+
+    if (lang != 4)
+        cout << "}\n";
+}
+}
+
 void printErrorBanner()
 {
     cout << "\n=====================================\n";
@@ -2008,6 +2610,11 @@ int main(int argc, char* argv[])
 {
     printCompilerHeader();
 
+    int targetLang;
+    cout << "\nSelect Target Language:\n";
+    cout << "1. C\n2. C++\n3. Java\n4. Python\nChoice: ";
+    cin >> targetLang;
+
     cout << "\n[COMPILER] Starting Lexical Analysis...\n";
 
     /* Input handling */
@@ -2058,16 +2665,72 @@ int main(int argc, char* argv[])
         printAST(root);
     cout << "=====================================\n";
 
-    /* Execution (also does semantic checking) */
+    
     cout << "\n[COMPILER] Executing Program...\n\n";
 
     exec(root);
 
-    /* STOP if semantic error */
+    
     if(hasSemanticError){
         cout << "\n[COMPILER] Semantic Analysis Failed\n";
         return 1;
     }
+
+    cout << "\n[COMPILER] Intermediate Code Generation...\n\n";
+    generateIR(root);
+    
+    cout << "\n[COMPILER] Target Code Generation...\n\n";
+    
+    
+
+   /* ================= C ================= */
+    if (targetLang == 1) {
+       cout << "#include <stdio.h>\n\n";
+
+       generateFunctions(root, targetLang);
+
+       cout << "int main() {\n";
+       generateCode(root, targetLang);
+       cout << "return 0;\n}\n";
+   }
+
+   /* ================= C++ ================= */
+    else if (targetLang == 2) {
+       cout << "#include <iostream>\nusing namespace std;\n\n";
+
+       generateFunctions(root, targetLang);   
+
+       cout << "int main() {\n";
+       generateCode(root, targetLang);
+       cout << "return 0;\n}\n";
+    }
+
+    /* ================= JAVA ================= */
+    else if (targetLang == 3) {
+       cout << "import java.util.*;\n\n";
+       cout << "public class Main {\n";
+       cout << "    static Scanner scanner = new Scanner(System.in);\n\n";
+
+       generateFunctions(root, targetLang);
+
+       cout << "    public static void main(String[] args) {\n";
+       generateCode(root, targetLang);
+       cout << "    }\n";
+       cout << "}\n";
+    }
+
+    /* ================= PYTHON ================= */
+    else if (targetLang == 4) {
+
+       generateFunctions(root, targetLang);   // functions first
+
+       cout << "\nif __name__ == '__main__':\n";
+       generateCode(root, targetLang, 1);     // indent main
+    }
+
+    
+
+    
 
     printPhase("Execution");
 
