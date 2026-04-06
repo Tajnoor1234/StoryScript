@@ -2631,21 +2631,21 @@ int main(int argc, char* argv[])
         yyin = fp;
     }
     else
-    {
-        cout << "[COMPILER] Enter StoryScript program (CTRL+D to finish)\n\n";
+   {
+       cout << "[COMPILER] Enter StoryScript program (CTRL+D to finish)\n\n";
 
-        string program;
-        char buffer[1024];
-        int n;
+       string program;
+       char buffer[1024];
+       int n;
 
-        while((n = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0)
-        {
-            program.append(buffer, n);
-        }
-        yylineno = 1;
+       while((n = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0)
+      {
+          program.append(buffer, n);
+      }
+      yylineno = 1;
 
-        yy_scan_string(program.c_str());
-    }
+      yy_scan_string(program.c_str());
+  }
 
     /* Parsing */
     yyparse();

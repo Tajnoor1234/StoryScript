@@ -26,4 +26,18 @@ character c holds multiply(a, b);
 
 narrate c;
 
+character x holds 0;
+character y holds 0;
+during x < 3
+    y holds 0;
+
+    during y < 2
+        narrate x;
+        narrate y;
+        y holds y + 1;
+    end cycle
+
+    x holds x + 1;
+end cycle
+
 end story
